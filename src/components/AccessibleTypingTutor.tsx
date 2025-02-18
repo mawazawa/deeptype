@@ -380,6 +380,11 @@ const AccessibleTypingTutor = () => {
     fetchPerformanceHistory();
   }, [user]);
 
+  const getNextExpectedKey = () => {
+    if (!target || text.length >= target.length) return null;
+    return target[text.length];
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center space-y-8 animate-fade-in">
       <div 
@@ -475,7 +480,10 @@ const AccessibleTypingTutor = () => {
         </div>
 
         <div className="w-full max-w-6xl mt-8">
-          <VisualKeyboard pressedKey={pressedKey} />
+          <VisualKeyboard 
+            pressedKey={pressedKey} 
+            nextKey={getNextExpectedKey()} 
+          />
         </div>
 
         {user && performanceHistory.length > 0 && (
