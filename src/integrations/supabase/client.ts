@@ -6,17 +6,6 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://olvtlevlbgtalcnhcnvh.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sdnRsZXZsYmd0YWxjbmhjbnZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk4NTQ5MjAsImV4cCI6MjA1NTQzMDkyMH0.Xa_PvI1tU4c_vsHH6FAO4Km65w4eY9UjiQ6f0jbdjDE";
 
-// Get the current URL of the application
-const getURL = () => {
-  let url =
-    import.meta?.env?.VITE_SITE_URL ?? // Custom environment variable
-    window.location.origin; // Get the current origin as fallback
-  // Make sure to include `https://` when not localhost.
-  url = url.includes('http') ? url : `https://${url}`;
-  // Make sure to include trailing `/`
-  return url.charAt(url.length - 1) === '/' ? url : `${url}/`;
-};
-
 export const supabase = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY,
@@ -26,7 +15,6 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       persistSession: true,
-      redirectTo: getURL(),
     },
   }
 );

@@ -9,6 +9,8 @@ const AccessibleTypingTutor = () => {
   const [isListening, setIsListening] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [errorCount, setErrorCount] = useState(0);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const calculateResults = useCallback(async () => {
@@ -19,6 +21,29 @@ const AccessibleTypingTutor = () => {
     const wordsTyped = target.split(' ').length;
     const wpm = Math.round(wordsTyped / timeInMinutes);
     const accuracy = Math.round(((target.length - errorCount) / target.length) * 100);
+
+    // Get AI feedback
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-tutor', {
+        body: {
+          text,
+          target,
+          wpm,
+          accuracy
+        },
+      });
+
+      if (error) throw error;
+      setFeedback(data.feedback);
+    } catch (error) {
+      console.error('Error getting AI feedback:', error);
+      toast({
+        title: "Error getting AI feedback",
+        description: "Could not get AI feedback at this time",
+        variant: "destructive",
+      });
+    }
 
     // Save results if user is logged in
     const { data: { session } } = await supabase.auth.getSession();
@@ -53,7 +78,8 @@ const AccessibleTypingTutor = () => {
     setErrorCount(0);
     setText("");
     setTarget("Type the following text: The quick brown fox jumps over the lazy dog.");
-  }, [startTime, target, errorCount, toast]);
+    setIsLoading(false);
+  }, [startTime, target, errorCount, text, toast]);
 
   useEffect(() => {
     const startTutorial = (e: KeyboardEvent) => {
@@ -129,7 +155,7 @@ const AccessibleTypingTutor = () => {
         </button>
 
         <div 
-          className="p-6 rounded-lg border border-border bg-black/50 backdrop-blur-lg"
+          className="p-6 rounded-lg border border-border bg-black/50 backdrop-blur-lg mb-6"
           role="textbox"
           aria-label="Typing area"
           tabIndex={0}
@@ -143,6 +169,19 @@ const AccessibleTypingTutor = () => {
           <p className="text-xl mb-4 text-secondary">Your input:</p>
           <p className="text-2xl font-mono min-h-[2em]">{text || "Start typing..."}</p>
         </div>
+
+        {feedback && (
+          <div className="p-4 rounded-lg border border-primary/50 bg-primary/5">
+            <h2 className="text-lg font-semibold mb-2">AI Feedback</h2>
+            <p className="text-secondary">{feedback}</p>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="text-center text-secondary animate-pulse">
+            Getting AI feedback...
+          </div>
+        )}
 
         <div className="mt-8 text-center text-secondary animate-slide-up">
           <p>Press Tab to navigate, Space to select, and use arrow keys for navigation.</p>
