@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define the SpeechRecognition type
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -19,27 +18,52 @@ const AccessibleTypingTutor = () => {
   const [errorCount, setErrorCount] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isTutorEnabled, setIsTutorEnabled] = useState(true);
+  const [voiceIndex, setVoiceIndex] = useState(0);
   const { toast } = useToast();
   const announcer = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const voices = useRef<SpeechSynthesisVoice[]>([]);
 
-  // Function to announce messages to screen readers
+  // Initialize speech synthesis voices
+  useEffect(() => {
+    const loadVoices = () => {
+      voices.current = window.speechSynthesis.getVoices();
+      // Try to find a natural sounding voice
+      const preferredVoice = voices.current.findIndex(
+        voice => voice.name.includes('Natural') || voice.name.includes('Premium')
+      );
+      if (preferredVoice !== -1) {
+        setVoiceIndex(preferredVoice);
+      }
+    };
+
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
   const announce = (message: string) => {
     if (announcer.current) {
       announcer.current.textContent = message;
     }
 
-    // Also speak the message if speech synthesis is available
     if (window.speechSynthesis) {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+      
       const utterance = new SpeechSynthesisUtterance(message);
+      if (voices.current.length > 0) {
+        utterance.voice = voices.current[voiceIndex];
+        utterance.rate = 1;
+        utterance.pitch = 1;
+      }
       window.speechSynthesis.speak(utterance);
     }
   };
-
-  // Focus the input field when the component mounts or target changes
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, [target]);
 
   const calculateResults = useCallback(async () => {
     if (!startTime) return;
@@ -52,28 +76,29 @@ const AccessibleTypingTutor = () => {
 
     announce(`Lesson completed! Your speed was ${wpm} words per minute with ${accuracy}% accuracy.`);
 
-    // Get AI feedback
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-tutor', {
-        body: {
-          text,
-          target,
-          wpm,
-          accuracy
-        },
-      });
+    if (isTutorEnabled) {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('gemini-tutor', {
+          body: {
+            text,
+            target,
+            wpm,
+            accuracy
+          },
+        });
 
-      if (error) throw error;
-      setFeedback(data.feedback);
-      announce(data.feedback);
-    } catch (error) {
-      console.error('Error getting AI feedback:', error);
-      toast({
-        title: "Error getting AI feedback",
-        description: "Could not get AI feedback at this time",
-        variant: "destructive",
-      });
+        if (error) throw error;
+        setFeedback(data.feedback);
+        announce(data.feedback);
+      } catch (error) {
+        console.error('Error getting AI feedback:', error);
+        toast({
+          title: "Error getting AI feedback",
+          description: "Could not get AI feedback at this time",
+          variant: "destructive",
+        });
+      }
     }
 
     // Save results if user is logged in
@@ -108,27 +133,26 @@ const AccessibleTypingTutor = () => {
     setStartTime(null);
     setErrorCount(0);
     setText("");
-    setTarget("Type the following text: The quick brown fox jumps over the lazy dog.");
+    setTarget("The quick brown fox jumps over the lazy dog.");
     setIsLoading(false);
-  }, [startTime, target, errorCount, text, toast]);
-
-  const startTutorial = useCallback((e: KeyboardEvent) => {
-    if (target.includes("Press any key")) {
-      setTarget("Type the following text: Hello world!");
-      setText("");
-      setStartTime(Date.now());
-      announce("Lesson started. Type: Hello world!");
-    }
-  }, [target]);
+  }, [startTime, target, errorCount, text, toast, isTutorEnabled]);
 
   useEffect(() => {
+    const startTutorial = (e: KeyboardEvent) => {
+      if (target.includes("Press any key")) {
+        setTarget("Hello world!");
+        setText("");
+        setStartTime(Date.now());
+        announce("Lesson started. Type: Hello world!");
+      }
+    };
+
     window.addEventListener("keydown", startTutorial);
     return () => window.removeEventListener("keydown", startTutorial);
-  }, [startTutorial]);
+  }, [target]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const lastChar = value[value.length - 1];
     
     if (target.includes("Press any key")) return;
     
@@ -145,6 +169,7 @@ const AccessibleTypingTutor = () => {
     } else {
       setErrorCount(prev => prev + 1);
       const expectedChar = target[text.length];
+      const lastChar = value[value.length - 1];
       announce(`Incorrect. Expected ${expectedChar}, got ${lastChar}`);
       toast({
         title: "Incorrect key",
@@ -159,16 +184,8 @@ const AccessibleTypingTutor = () => {
     setIsListening(prev => !prev);
     const message = isListening ? "Voice control disabled" : "Voice control enabled";
     announce(message);
-    toast({
-      title: message,
-      description: isListening ? 
-        "You can now use keyboard input" : 
-        "You can now use voice commands",
-      duration: 3000,
-    });
   };
 
-  // Start listening for voice commands when enabled
   useEffect(() => {
     if (!isListening) return;
 
@@ -183,21 +200,54 @@ const AccessibleTypingTutor = () => {
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    recognition.onstart = () => {
+      announce("Voice recognition started");
+    };
+
     recognition.onresult = (event) => {
       const transcript = Array.from(event.results)
         .map(result => result[0].transcript)
-        .join('');
-      
-      if (transcript.toLowerCase().includes('start')) {
+        .join(' ')
+        .toLowerCase();
+
+      console.log("Voice command detected:", transcript);
+
+      if (transcript.includes('start')) {
         if (target.includes("Press any key")) {
-          startTutorial(new KeyboardEvent('keydown'));
+          setTarget("Hello world!");
+          setText("");
+          setStartTime(Date.now());
+          announce("Starting new lesson");
         }
+      } else if (transcript.includes('stop') || transcript.includes('end')) {
+        setIsListening(false);
+        announce("Voice control disabled");
       }
     };
 
-    recognition.start();
-    return () => recognition.stop();
-  }, [isListening, target, startTutorial]);
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      announce("Voice recognition error. Please try again.");
+    };
+
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+    }
+
+    return () => {
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
+    };
+  }, [isListening, target]);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [target]);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center space-y-8 animate-fade-in">
@@ -213,17 +263,31 @@ const AccessibleTypingTutor = () => {
           Accessible Typing Tutor
         </h1>
         
-        <button
-          onClick={toggleVoiceControl}
-          className={`w-full p-4 mb-8 rounded-lg transition-all duration-300 backdrop-blur-lg border ${
-            isListening 
-              ? "border-primary bg-primary/10 animate-pulse" 
-              : "border-border bg-background/50"
-          }`}
-          aria-label={isListening ? "Voice control active (click to disable)" : "Enable voice control"}
-        >
-          {isListening ? "🎤 Listening..." : "🎤 Enable Voice Control"}
-        </button>
+        <div className="flex gap-4 mb-8">
+          <button
+            onClick={toggleVoiceControl}
+            className={`flex-1 p-4 rounded-lg transition-all duration-300 backdrop-blur-lg border ${
+              isListening 
+                ? "border-primary bg-primary/10 animate-pulse" 
+                : "border-border bg-background/50"
+            }`}
+            aria-label={isListening ? "Voice control active (click to disable)" : "Enable voice control"}
+          >
+            {isListening ? "🎤 Listening..." : "🎤 Enable Voice Control"}
+          </button>
+
+          <button
+            onClick={() => setIsTutorEnabled(prev => !prev)}
+            className={`flex-1 p-4 rounded-lg transition-all duration-300 backdrop-blur-lg border ${
+              isTutorEnabled 
+                ? "border-primary bg-primary/10" 
+                : "border-border bg-background/50"
+            }`}
+            aria-label={isTutorEnabled ? "AI Tutor enabled (click to disable)" : "Enable AI Tutor"}
+          >
+            {isTutorEnabled ? "🤖 AI Tutor Active" : "🤖 Enable AI Tutor"}
+          </button>
+        </div>
 
         <div 
           className="p-6 rounded-lg border border-border bg-black/50 backdrop-blur-lg mb-6"
@@ -250,7 +314,7 @@ const AccessibleTypingTutor = () => {
           />
         </div>
 
-        {feedback && (
+        {feedback && isTutorEnabled && (
           <div 
             className="p-4 rounded-lg border border-primary/50 bg-primary/5"
             role="alert"
@@ -261,7 +325,7 @@ const AccessibleTypingTutor = () => {
           </div>
         )}
 
-        {isLoading && (
+        {isLoading && isTutorEnabled && (
           <div 
             className="text-center text-secondary animate-pulse"
             role="alert"
@@ -276,7 +340,7 @@ const AccessibleTypingTutor = () => {
           className="mt-8 text-center text-secondary animate-slide-up"
         >
           <p>Press Tab to navigate, Space to select, and use arrow keys for navigation.</p>
-          <p>All commands can be activated by voice or keyboard.</p>
+          <p>Voice commands: Say "start" to begin, "stop" to disable voice control.</p>
         </div>
       </div>
     </div>
