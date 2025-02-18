@@ -1,1 +1,9 @@
-{"buildCommand":"vite build","devCommand":"vite","installCommand":"npm install","framework":"vite","outputDirectory":"dist","rewrites":[{"source":"/(.*)","destination":"/index.html"}],"env":{"NEXT_PUBLIC_GEMINI_API_KEY":"@gemini-api-key"}}
+{
+  "buildCommand": "vite build",
+  "devCommand": "vite",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "env": { "NEXT_PUBLIC_GEMINI_API_KEY": "@gemini-api-key" }
+}
