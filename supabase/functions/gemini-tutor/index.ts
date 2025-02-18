@@ -24,11 +24,10 @@ serve(async (req) => {
     console.log('Received request:', { text, target, wpm, accuracy })
 
     // Call Google Gemini API with proper error logging
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GEMINI_API_KEY}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         contents: [{
