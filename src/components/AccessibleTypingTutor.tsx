@@ -3,6 +3,14 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define the SpeechRecognition type
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 const AccessibleTypingTutor = () => {
   const [text, setText] = useState("");
   const [target, setTarget] = useState("Welcome to the accessible typing tutor. Press any key to begin.");
@@ -13,6 +21,7 @@ const AccessibleTypingTutor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const announcer = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Function to announce messages to screen readers
   const announce = (message: string) => {
@@ -26,6 +35,11 @@ const AccessibleTypingTutor = () => {
       window.speechSynthesis.speak(utterance);
     }
   };
+
+  // Focus the input field when the component mounts or target changes
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, [target]);
 
   const calculateResults = useCallback(async () => {
     if (!startTime) return;
@@ -98,21 +112,24 @@ const AccessibleTypingTutor = () => {
     setIsLoading(false);
   }, [startTime, target, errorCount, text, toast]);
 
-  useEffect(() => {
-    const startTutorial = (e: KeyboardEvent) => {
-      if (target.includes("Press any key")) {
-        setTarget("Type the following text: Hello world!");
-        setText("");
-        setStartTime(Date.now());
-        announce("Lesson started. Type: Hello world!");
-      }
-    };
-
-    window.addEventListener("keydown", startTutorial);
-    return () => window.removeEventListener("keydown", startTutorial);
+  const startTutorial = useCallback((e: KeyboardEvent) => {
+    if (target.includes("Press any key")) {
+      setTarget("Type the following text: Hello world!");
+      setText("");
+      setStartTime(Date.now());
+      announce("Lesson started. Type: Hello world!");
+    }
   }, [target]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  useEffect(() => {
+    window.addEventListener("keydown", startTutorial);
+    return () => window.removeEventListener("keydown", startTutorial);
+  }, [startTutorial]);
+
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const lastChar = value[value.length - 1];
+    
     if (target.includes("Press any key")) return;
     
     if (!startTime) {
@@ -120,29 +137,22 @@ const AccessibleTypingTutor = () => {
       announce("Starting timer. Begin typing.");
     }
     
-    setText(prev => {
-      const newText = prev + e.key;
-      
-      // Check for correct typing
-      if (target.startsWith(newText)) {
-        if (newText === target) {
-          calculateResults();
-        }
-        return newText;
+    if (target.startsWith(value)) {
+      setText(value);
+      if (value === target) {
+        calculateResults();
       }
-      
+    } else {
       setErrorCount(prev => prev + 1);
-      const expectedChar = target[prev.length];
-      announce(`Incorrect. Expected ${expectedChar}, got ${e.key}`);
+      const expectedChar = target[text.length];
+      announce(`Incorrect. Expected ${expectedChar}, got ${lastChar}`);
       toast({
         title: "Incorrect key",
-        description: `Expected "${expectedChar}" but got "${e.key}"`,
+        description: `Expected "${expectedChar}" but got "${lastChar}"`,
         variant: "destructive",
         duration: 2000,
       });
-      
-      return prev;
-    });
+    }
   };
 
   const toggleVoiceControl = () => {
@@ -162,7 +172,6 @@ const AccessibleTypingTutor = () => {
   useEffect(() => {
     if (!isListening) return;
 
-    // Check if browser supports speech recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       announce("Speech recognition is not supported in this browser");
@@ -179,7 +188,6 @@ const AccessibleTypingTutor = () => {
         .map(result => result[0].transcript)
         .join('');
       
-      // Handle voice commands
       if (transcript.toLowerCase().includes('start')) {
         if (target.includes("Press any key")) {
           startTutorial(new KeyboardEvent('keydown'));
@@ -189,11 +197,10 @@ const AccessibleTypingTutor = () => {
 
     recognition.start();
     return () => recognition.stop();
-  }, [isListening, target]);
+  }, [isListening, target, startTutorial]);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center space-y-8 animate-fade-in">
-      {/* Screen reader announcer */}
       <div 
         ref={announcer}
         className="sr-only" 
@@ -220,10 +227,7 @@ const AccessibleTypingTutor = () => {
 
         <div 
           className="p-6 rounded-lg border border-border bg-black/50 backdrop-blur-lg mb-6"
-          role="textbox"
           aria-label="Typing area"
-          tabIndex={0}
-          onKeyPress={handleKeyPress}
           aria-describedby="typing-instructions"
         >
           <p className="text-xl mb-4 text-secondary">Target text:</p>
@@ -232,9 +236,18 @@ const AccessibleTypingTutor = () => {
           <div className="h-px bg-border mb-6" role="separator" />
           
           <p className="text-xl mb-4 text-secondary">Your input:</p>
-          <p className="text-2xl font-mono min-h-[2em]" aria-live="polite">
-            {text || "Start typing..."}
-          </p>
+          <input
+            ref={inputRef}
+            type="text"
+            value={text}
+            onChange={handleInput}
+            className="w-full bg-transparent text-2xl font-mono min-h-[2em] focus:outline-none focus:ring-2 focus:ring-primary/50 rounded p-2"
+            aria-label="Type here"
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck="false"
+          />
         </div>
 
         {feedback && (
