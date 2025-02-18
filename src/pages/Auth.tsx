@@ -1,110 +1,59 @@
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Auth Page                                                                           ║
+ * ║ Description: Authentication page with login, signup, and password reset functionality          ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSupabase } from '@/hooks/useSupabase';
+import AuthForm from '@/components/auth/AuthForm';
 
-const Auth = () => {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+const Auth: React.FC = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { supabase } = useSupabase();
 
-  // Check if user is already logged in
   useEffect(() => {
-    const checkUser = async () => {
+    // Check if user is already authenticated
+    const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        console.log("Session found, redirecting to home");
         navigate('/');
       }
     };
-    checkUser();
 
-    // Also listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        console.log("Auth state changed - user logged in, redirecting to home");
+    checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
         navigate('/');
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Magic link sent!",
-        description: "Check your email for the login link",
-        duration: 5000,
-      });
-      
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate, supabase.auth]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center animate-fade-in">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold">DeepType AI</h1>
-          <h2 className="text-2xl mt-4">Welcome Back</h2>
-          <p className="mt-2 text-secondary">Sign in to track your progress</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-background/80">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">DeepType</h1>
+          <p className="text-muted-foreground">
+            Master touch typing with AI-powered tutoring
+          </p>
         </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="w-full p-3 rounded-lg border border-border bg-background/50 backdrop-blur-lg"
-              aria-label="Email address"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full p-3 rounded-lg bg-primary/10 border border-primary hover:bg-primary/20 transition-all duration-200"
-            aria-label={loading ? "Sending magic link..." : "Send magic link"}
-          >
-            {loading ? "Sending..." : "Send Magic Link"}
-          </button>
-        </form>
-
-        <button
-          onClick={() => navigate("/")}
-          className="w-full p-3 text-secondary hover:text-primary transition-colors"
-          aria-label="Return to home page"
-        >
-          ← Back to Home
-        </button>
+        <AuthForm />
       </div>
     </div>
   );

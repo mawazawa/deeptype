@@ -1,3 +1,19 @@
+/*
+ * ████████╗██╗   ██╗██████╗ ██╗███╗   ██╗ ██████╗     ████████╗██╗   ██╗████████╗ ██████╗ ██████╗
+ * ╚══██╔══╝╚██╗ ██╔╝██╔══██╗██║████╗  ██║██╔════╝     ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗
+ *    ██║    ╚████╔╝ ██████╔╝██║██╔██╗ ██║██║  ███╗       ██║   ██║   ██║   ██║   ██║   ██║██████╔╝
+ *    ██║     ╚██╔╝  ██╔═══╝ ██║██║╚██╗██║██║   ██║       ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗
+ *    ██║      ██║   ██║     ██║██║ ╚████║╚██████╔╝       ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║
+ *    ╚═╝      ╚═╝   ╚═╝     ╚═╝╚═╝  ╚═══╝ ╚═════╝        ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: AccessibleTypingTutor                                                               ║
+ * ║ Description: Core typing tutor component with accessibility features, voice control,           ║
+ * ║              and adaptive learning capabilities. Provides real-time feedback and analytics     ║
+ * ║              for an enhanced typing learning experience.                                       ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,7 +154,7 @@ const AccessibleTypingTutor = () => {
 
     if (window.speechSynthesis && !isMuted) {
       window.speechSynthesis.cancel();
-      
+
       const utterance = new SpeechSynthesisUtterance(message);
       if (voices.current.length > 0) {
         utterance.voice = voices.current[voiceIndex];
@@ -172,7 +188,7 @@ const AccessibleTypingTutor = () => {
 
   const calculateResults = useCallback(async () => {
     if (!startTime || !user) return;
-    
+
     const endTime = Date.now();
     const timeInMinutes = (endTime - startTime) / 1000 / 60;
     const wordsTyped = target.split(' ').length;
@@ -190,7 +206,7 @@ const AccessibleTypingTutor = () => {
     }
 
     const adaptiveLessons = generateAdaptiveLessons(newAnalysis, currentLevel);
-    
+
     announce(`Lesson completed! Your speed was ${wpm} words per minute with ${accuracy}% accuracy.`);
 
     if (isTutorEnabled) {
@@ -274,19 +290,19 @@ const AccessibleTypingTutor = () => {
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
+
     if (showWelcome) {
       setShowWelcome(false);
       setTarget(LESSON_SETS.beginner[0]);
       setText("");
       return;
     }
-    
+
     if (!startTime) {
       setStartTime(Date.now());
       announce("Starting timer. Begin typing.");
     }
-    
+
     if (target.startsWith(value)) {
       setText(value);
       if (value === target) {
@@ -428,10 +444,10 @@ const AccessibleTypingTutor = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center space-y-8 animate-fade-in">
-      <div 
+      <div
         ref={announcer}
-        className="sr-only" 
-        role="status" 
+        className="sr-only"
+        role="status"
         aria-live="polite"
       />
       {showWelcome && (
@@ -478,7 +494,7 @@ const AccessibleTypingTutor = () => {
             </div>
           )}
         </div>
-        
+
         <div className="space-y-8 p-8 rounded-lg border border-border/50 bg-black/30 backdrop-blur-sm">
           <div className="relative">
             <p className="text-4xl font-mono text-secondary mb-4 transition-all duration-300">
@@ -501,7 +517,7 @@ const AccessibleTypingTutor = () => {
                 autoCorrect="off"
                 spellCheck="false"
               />
-              <div 
+              <div
                 className="absolute bottom-0 left-0 w-full h-0.5 bg-primary/50 origin-left transition-transform duration-300"
                 style={{
                   transform: `scaleX(${text.length / target.length})`
@@ -513,9 +529,9 @@ const AccessibleTypingTutor = () => {
       </div>
 
       <div className="w-full max-w-6xl mt-8">
-        <VisualKeyboard 
-          pressedKey={pressedKey} 
-          nextKey={getNextExpectedKey()} 
+        <VisualKeyboard
+          pressedKey={pressedKey}
+          nextKey={getNextExpectedKey()}
         />
       </div>
 
@@ -555,7 +571,7 @@ const AccessibleTypingTutor = () => {
       )}
 
       {feedback && isTutorEnabled && (
-        <div 
+        <div
           className="p-4 rounded-lg border border-primary/50 bg-primary/5"
           role="alert"
           aria-live="polite"
@@ -566,7 +582,7 @@ const AccessibleTypingTutor = () => {
       )}
 
       {isLoading && isTutorEnabled && (
-        <div 
+        <div
           className="text-center text-secondary animate-pulse"
           role="alert"
           aria-live="polite"
@@ -575,7 +591,7 @@ const AccessibleTypingTutor = () => {
         </div>
       )}
 
-      <div 
+      <div
         id="typing-instructions"
         className="mt-8 text-center text-secondary animate-slide-up"
       >

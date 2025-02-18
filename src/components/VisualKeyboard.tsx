@@ -1,4 +1,19 @@
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: VisualKeyboard                                                                      ║
+ * ║ Description: Interactive keyboard visualization with key highlighting and finger indicators     ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 interface KeyProps {
   label: string;
@@ -6,26 +21,83 @@ interface KeyProps {
   isPressed?: boolean;
   isNext?: boolean;
   isSpecial?: boolean;
+  fingerIndex?: number; // 1-8 for fingers (1=left pinky, 4=left index, 5=right index, 8=right pinky)
 }
 
-const Key = ({ label, width = "w-12", isPressed = false, isNext = false, isSpecial = false }: KeyProps) => (
-  <div
-    className={`
-      h-12 ${width} rounded-lg border border-border/50 
-      flex items-center justify-center
-      transition-all duration-300
-      ${isPressed 
-        ? "bg-primary/20 text-primary border-primary shadow-[0_0_10px_rgba(250,250,250,0.2)]" 
-        : isNext
-          ? "bg-green-500/10 text-green-400 border-green-500 shadow-[0_0_10px_rgba(0,255,0,0.1)] animate-[pulse_3s_ease-in-out_infinite]"
-          : "bg-black/50 text-secondary hover:bg-black/70"}
-      ${isSpecial ? "text-xs" : "text-sm"}
-      backdrop-blur-sm
-    `}
-  >
-    {label}
-  </div>
-);
+// Finger mapping for each key
+const FINGER_MAP: Record<string, number> = {
+  '`': 1, '1': 1, '2': 2, '3': 3, '4': 4, '5': 4, '6': 5, '7': 5, '8': 6, '9': 7, '0': 8, '-': 8, '=': 8,
+  'q': 1, 'w': 2, 'e': 3, 'r': 4, 't': 4, 'y': 5, 'u': 5, 'i': 6, 'o': 7, 'p': 8, '[': 8, ']': 8, '\\': 8,
+  'a': 1, 's': 2, 'd': 3, 'f': 4, 'g': 4, 'h': 5, 'j': 5, 'k': 6, 'l': 7, ';': 8, "'": 8,
+  'z': 1, 'x': 2, 'c': 3, 'v': 4, 'b': 4, 'n': 5, 'm': 5, ',': 6, '.': 7, '/': 8
+};
+
+const FINGER_COLORS = {
+  1: 'rgb(255, 100, 100)', // Left pinky - Red
+  2: 'rgb(255, 150, 50)',  // Left ring - Orange
+  3: 'rgb(255, 200, 0)',   // Left middle - Yellow
+  4: 'rgb(100, 255, 100)', // Left index - Green
+  5: 'rgb(100, 200, 255)', // Right index - Light Blue
+  6: 'rgb(150, 150, 255)', // Right middle - Blue
+  7: 'rgb(200, 100, 255)', // Right ring - Purple
+  8: 'rgb(255, 100, 255)'  // Right pinky - Pink
+};
+
+const Key = ({ label, width = "w-12", isPressed = false, isNext = false, isSpecial = false }: KeyProps) => {
+  const fingerIndex = FINGER_MAP[label.toLowerCase()];
+  const fingerColor = fingerIndex ? FINGER_COLORS[fingerIndex] : undefined;
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={isPressed}
+      aria-label={`${label} key ${isNext ? '- next key to press' : ''} ${fingerIndex ? `- use ${fingerIndex <= 4 ? 'left' : 'right'} ${['pinky', 'ring', 'middle', 'index'][Math.min(3, (fingerIndex - 1) % 4)]} finger` : ''}`}
+      className={cn(
+        "relative h-12",
+        width,
+        "rounded-lg border border-border/50",
+        "flex items-center justify-center",
+        "transition-all duration-300",
+        isPressed
+          ? "bg-primary/20 text-primary border-primary shadow-[0_0_10px_rgba(250,250,250,0.2)]"
+          : isNext
+            ? "bg-green-500/10 text-green-400 border-green-500 shadow-[0_0_10px_rgba(0,255,0,0.1)] animate-[pulse_3s_ease-in-out_infinite]"
+            : "bg-black/50 text-secondary hover:bg-black/70",
+        isSpecial ? "text-xs" : "text-sm",
+        "backdrop-blur-sm",
+        "focus:ring-2 focus:ring-primary focus:outline-none",
+        "motion-safe:transition-all"
+      )}
+      style={{
+        borderTopColor: fingerColor,
+        borderTopWidth: fingerIndex ? '3px' : '1px'
+      }}
+      data-key={label.toLowerCase()}
+      data-finger={fingerIndex}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          console.info(`Key ${label} activated via keyboard`);
+        }
+      }}
+    >
+      {label}
+      {isNext && (
+        <span className="sr-only">
+          (Next key to press)
+        </span>
+      )}
+      {fingerIndex && (
+        <div
+          className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-[10px] opacity-50"
+          style={{ color: fingerColor }}
+        >
+          {fingerIndex <= 4 ? 'L' : 'R'}{(fingerIndex - 1) % 4 + 1}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface VisualKeyboardProps {
   pressedKey: string | null;
@@ -92,7 +164,7 @@ const VisualKeyboard: React.FC<VisualKeyboardProps> = ({ pressedKey, nextKey }) 
           <Key label="P" isPressed={isKeyPressed("p")} isNext={isNextKey("p")} />
           <Key label="[" isPressed={isKeyPressed("[")} isNext={isNextKey("[")} />
           <Key label="]" isPressed={isKeyPressed("]")} isNext={isNextKey("]")} />
-          <Key label="\" isPressed={isKeyPressed("\\")} isNext={isNextKey("\\")} />
+          <Key label="\\" isPressed={isKeyPressed("\\")} isNext={isNextKey("\\")} />
         </div>
 
         {/* ASDF Row */}

@@ -1,0 +1,42 @@
+---
+description: 
+globs: 
+---
+// Development Guidelines
+1. Component Structure:
+   - Atomic Design Methodology
+   - Reusable Components
+
+
+// Logging Configuration
+1. Development Environment:
+   - Verbose Console Logging
+   - Performance Metrics
+
+
+2. Production Environment:
+   - User Analytics via Vercel
+  
+// Design System Implementation
+1. Component Library:
+   - Shadcn/ui as Base
+   - Custom Themed Components
+   - Consistent Animation System
+
+3. Motion Design:
+   - Smooth Transitions (0.3s)
+   - Subtle Hover States
+   - Loading States with Skeletons
+
+
+# Workspace Rules: every single file in the repo must start with a big header like the one below, relevant to the file in question, self-explanatory for the contents of the file. Followed by a small framed explanation of what this file's purpose is. 
+
+/*
+ * ██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗███████╗██████╗  █████╗  ██████╗███████╗
+ * ██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔════╝██╔══██╗██╔══██╗██╔════╝██╔════╝
+ * ██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ███████╗██████╔╝███████║██║     █████╗  
+ * ██║███╗██║██║   ██║██╔══██╗██╔═██╗ ╚════██║██╔═══╝ ██╔══██║██║     ██╔══╝  
+ * ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗███████║██║     ██║  ██║╚██████╗███████╗
+ *  ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝  ╚═╝ ╚═════╝╚══════╝
+ *
+

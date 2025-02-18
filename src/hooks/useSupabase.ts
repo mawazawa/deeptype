@@ -7,32 +7,52 @@
  *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
  *
  * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
- * ║ Component: Label                                                                               ║
- * ║ Description: Form label component with Radix UI integration and consistent styling             ║
+ * ║ Module: Supabase Hook                                                                          ║
+ * ║ Description: React hook for accessing Supabase client and authentication                       ║
  * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
  */
 
-import * as React from "react"
-import * as LabelPrimitive from "@radix-ui/react-label"
-import { cva, type VariantProps } from "class-variance-authority"
+import { createClient } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
+import { getConfig } from '@/lib/config';
 
-import { cn } from "@/lib/utils"
+// Initialize Supabase client
+const config = getConfig();
+const supabase = createClient(
+  config.supabaseUrl,
+  config.supabaseAnonKey
+);
 
-const labelVariants = cva(
-  "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-)
+interface UseSupabaseReturn {
+  supabase: typeof supabase;
+  isInitialized: boolean;
+}
 
-const Label = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> &
-    VariantProps<typeof labelVariants>
->(({ className, ...props }, ref) => (
-  <LabelPrimitive.Root
-    ref={ref}
-    className={cn(labelVariants(), className)}
-    {...props}
-  />
-))
-Label.displayName = LabelPrimitive.Root.displayName
+export function useSupabase(): UseSupabaseReturn {
+  const [isInitialized, setIsInitialized] = useState(false);
 
-export { Label }
+  useEffect(() => {
+    // Verify connection and set initialized state
+    const checkConnection = async () => {
+      try {
+        const { data, error } = await supabase.from('health_check').select('*').limit(1);
+        if (error) throw error;
+        console.info('Supabase connection verified');
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to connect to Supabase:', error);
+        setIsInitialized(false);
+      }
+    };
+
+    checkConnection();
+  }, []);
+
+  return {
+    supabase,
+    isInitialized
+  };
+}
+
+// Export singleton instance for non-React usage
+export { supabase };
