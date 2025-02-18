@@ -1,18 +1,66 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const AccessibleTypingTutor = () => {
   const [text, setText] = useState("");
   const [target, setTarget] = useState("Welcome to the accessible typing tutor. Press any key to begin.");
   const [isListening, setIsListening] = useState(false);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [errorCount, setErrorCount] = useState(0);
   const { toast } = useToast();
+
+  const calculateResults = useCallback(async () => {
+    if (!startTime) return;
+    
+    const endTime = Date.now();
+    const timeInMinutes = (endTime - startTime) / 1000 / 60;
+    const wordsTyped = target.split(' ').length;
+    const wpm = Math.round(wordsTyped / timeInMinutes);
+    const accuracy = Math.round(((target.length - errorCount) / target.length) * 100);
+
+    // Save results if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          words_per_minute: wpm,
+          accuracy_percentage: accuracy,
+          last_lesson_date: new Date().toISOString()
+        })
+        .eq('id', session.user.id);
+
+      if (error) {
+        console.error('Error saving results:', error);
+        toast({
+          title: "Error saving results",
+          description: "Your progress couldn't be saved. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+
+    toast({
+      title: "Lesson completed!",
+      description: `Speed: ${wpm} WPM | Accuracy: ${accuracy}%`,
+      duration: 5000,
+    });
+
+    // Reset for next lesson
+    setStartTime(null);
+    setErrorCount(0);
+    setText("");
+    setTarget("Type the following text: The quick brown fox jumps over the lazy dog.");
+  }, [startTime, target, errorCount, toast]);
 
   useEffect(() => {
     const startTutorial = (e: KeyboardEvent) => {
       if (target.includes("Press any key")) {
         setTarget("Type the following text: Hello world!");
         setText("");
+        setStartTime(Date.now());
       }
     };
 
@@ -23,21 +71,22 @@ const AccessibleTypingTutor = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (target.includes("Press any key")) return;
     
+    if (!startTime) {
+      setStartTime(Date.now());
+    }
+    
     setText(prev => {
       const newText = prev + e.key;
       
       // Check for correct typing
       if (target.startsWith(newText)) {
         if (newText === target) {
-          toast({
-            title: "Success!",
-            description: "Well done! You've completed the text correctly.",
-            duration: 3000,
-          });
+          calculateResults();
         }
         return newText;
       }
       
+      setErrorCount(prev => prev + 1);
       toast({
         title: "Incorrect key",
         description: `Expected "${target[prev.length]}" but got "${e.key}"`,
