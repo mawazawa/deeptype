@@ -1,1 +1,5 @@
+
 project_id = "olvtlevlbgtalcnhcnvh"
+
+[functions.gemini-tutor]
+verify_jwt = false
