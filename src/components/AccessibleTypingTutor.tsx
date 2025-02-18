@@ -1,7 +1,32 @@
-
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { Settings, Volume2, VolumeX } from "lucide-react";
+
+const LESSON_SETS = {
+  beginner: [
+    "Hello world!",
+    "The quick brown fox jumps over the lazy dog.",
+    "Practice makes perfect.",
+    "Type with confidence and accuracy.",
+    "Keep your fingers on the home row keys.",
+  ],
+  intermediate: [
+    "JavaScript is a popular programming language.",
+    "React helps build interactive user interfaces.",
+    "Programming requires attention to detail.",
+    "Learning to type faster improves productivity.",
+    "Good developers write clean, readable code.",
+  ],
+  advanced: [
+    "The function takes a callback as an argument and executes it asynchronously.",
+    "Object-oriented programming emphasizes code reusability and maintainability.",
+    "TypeScript adds static typing to JavaScript for better development experience.",
+    "Version control systems help teams collaborate on code effectively.",
+    "Regular expressions are powerful tools for pattern matching in strings.",
+  ],
+};
 
 declare global {
   interface Window {
@@ -20,16 +45,55 @@ const AccessibleTypingTutor = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isTutorEnabled, setIsTutorEnabled] = useState(true);
   const [voiceIndex, setVoiceIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [currentLevel, setCurrentLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
+  const [lessonIndex, setLessonIndex] = useState(0);
+  const [user, setUser] = useState<User | null>(null);
+  const [stats, setStats] = useState<{ averageWpm: number; averageAccuracy: number } | null>(null);
+  
   const { toast } = useToast();
   const announcer = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const voices = useRef<SpeechSynthesisVoice[]>([]);
 
+  // Check auth state
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserStats(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserStats(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserStats = async (userId: string) => {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('words_per_minute, accuracy_percentage')
+      .eq('id', userId)
+      .single();
+
+    if (!error && profile) {
+      setStats({
+        averageWpm: profile.words_per_minute || 0,
+        averageAccuracy: profile.accuracy_percentage || 0
+      });
+    }
+  };
+
   // Initialize speech synthesis voices
   useEffect(() => {
     const loadVoices = () => {
       voices.current = window.speechSynthesis.getVoices();
-      // Try to find a natural sounding voice
       const preferredVoice = voices.current.findIndex(
         voice => voice.name.includes('Natural') || voice.name.includes('Premium')
       );
@@ -51,17 +115,39 @@ const AccessibleTypingTutor = () => {
       announcer.current.textContent = message;
     }
 
-    if (window.speechSynthesis) {
-      // Cancel any ongoing speech
+    if (window.speechSynthesis && !isMuted) {
       window.speechSynthesis.cancel();
       
       const utterance = new SpeechSynthesisUtterance(message);
       if (voices.current.length > 0) {
         utterance.voice = voices.current[voiceIndex];
-        utterance.rate = 1;
+        utterance.rate = 0.9; // Slightly slower for better clarity
         utterance.pitch = 1;
       }
       window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const getNextLesson = () => {
+    const currentLessons = LESSON_SETS[currentLevel];
+    if (lessonIndex >= currentLessons.length - 1) {
+      // Move to next level if available
+      if (currentLevel === 'beginner') {
+        setCurrentLevel('intermediate');
+        setLessonIndex(0);
+        return LESSON_SETS.intermediate[0];
+      } else if (currentLevel === 'intermediate') {
+        setCurrentLevel('advanced');
+        setLessonIndex(0);
+        return LESSON_SETS.advanced[0];
+      } else {
+        // Reset to beginning of current level
+        setLessonIndex(0);
+        return currentLessons[0];
+      }
+    } else {
+      setLessonIndex(prev => prev + 1);
+      return currentLessons[lessonIndex + 1];
     }
   };
 
@@ -102,8 +188,7 @@ const AccessibleTypingTutor = () => {
     }
 
     // Save results if user is logged in
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
+    if (user) {
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -111,7 +196,7 @@ const AccessibleTypingTutor = () => {
           accuracy_percentage: accuracy,
           last_lesson_date: new Date().toISOString()
         })
-        .eq('id', session.user.id);
+        .eq('id', user.id);
 
       if (error) {
         console.error('Error saving results:', error);
@@ -120,6 +205,9 @@ const AccessibleTypingTutor = () => {
           description: "Your progress couldn't be saved. Please try again.",
           variant: "destructive",
         });
+      } else {
+        // Update local stats
+        await fetchUserStats(user.id);
       }
     }
 
@@ -129,27 +217,13 @@ const AccessibleTypingTutor = () => {
       duration: 5000,
     });
 
-    // Reset for next lesson
+    // Set next lesson
     setStartTime(null);
     setErrorCount(0);
     setText("");
-    setTarget("The quick brown fox jumps over the lazy dog.");
+    setTarget(getNextLesson());
     setIsLoading(false);
-  }, [startTime, target, errorCount, text, toast, isTutorEnabled]);
-
-  useEffect(() => {
-    const startTutorial = (e: KeyboardEvent) => {
-      if (target.includes("Press any key")) {
-        setTarget("Hello world!");
-        setText("");
-        setStartTime(Date.now());
-        announce("Lesson started. Type: Hello world!");
-      }
-    };
-
-    window.addEventListener("keydown", startTutorial);
-    return () => window.removeEventListener("keydown", startTutorial);
-  }, [target]);
+  }, [startTime, target, errorCount, text, toast, isTutorEnabled, user]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -259,9 +333,21 @@ const AccessibleTypingTutor = () => {
       />
 
       <div className="w-full max-w-2xl">
-        <h1 className="text-4xl font-bold mb-2 text-center" aria-label="Accessible Typing Tutor">
-          Accessible Typing Tutor
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-4xl font-bold" aria-label="Accessible Typing Tutor">
+            Accessible Typing Tutor
+          </h1>
+          {user && (
+            <div className="text-sm text-secondary bg-secondary/10 p-2 rounded-lg">
+              <p>Welcome, {user.email}</p>
+              {stats && (
+                <p className="mt-1">
+                  Average: {stats.averageWpm} WPM | {stats.averageAccuracy}% accuracy
+                </p>
+              )}
+            </div>
+          )}
+        </div>
         
         <div className="flex gap-4 mb-8">
           <button
@@ -287,6 +373,23 @@ const AccessibleTypingTutor = () => {
           >
             {isTutorEnabled ? "🤖 AI Tutor Active" : "🤖 Enable AI Tutor"}
           </button>
+
+          <button
+            onClick={() => setIsMuted(prev => !prev)}
+            className={`p-4 rounded-lg transition-all duration-300 backdrop-blur-lg border ${
+              isMuted 
+                ? "border-destructive bg-destructive/10" 
+                : "border-border bg-background/50"
+            }`}
+            aria-label={isMuted ? "Unmute voice feedback" : "Mute voice feedback"}
+          >
+            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
+        </div>
+
+        <div className="text-sm text-secondary mb-4">
+          Level: {currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)} | 
+          Lesson {lessonIndex + 1} of {LESSON_SETS[currentLevel].length}
         </div>
 
         <div 
