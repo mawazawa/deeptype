@@ -161,13 +161,13 @@ export interface TypingMetrics {
   userId: string;
   sessionId: string;
   timestamp: number;
-  wpm: number;
-  accuracy: number;
-  errorRate: number;
-  backspaceCount: number;
-  pauseCount: number;
-  totalTime: number;
-  activeTime: number;
+    wpm: number;
+    accuracy: number;
+    errorRate: number;
+    backspaceCount: number;
+    pauseCount: number;
+    totalTime: number;
+    activeTime: number;
   heatmap: Record<string, number>;
   progression: {
     levelProgress: number;
