@@ -8,11 +8,16 @@ import { User } from "@supabase/supabase-js";
 const Index = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setIsLoading(false);
+      if (!session?.user) {
+        navigate('/auth');
+      }
     });
 
     // Listen for auth changes
@@ -24,16 +29,20 @@ const Index = () => {
       // If we're on the index page and there's no session, redirect to auth
       if (!session?.user) {
         console.log("No session detected, redirecting to auth");
+        navigate('/auth');
       }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-primary">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,7 +55,10 @@ const Index = () => {
                 {user.email}
               </span>
               <button
-                onClick={handleSignOut}
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  navigate('/auth');
+                }}
                 className="px-4 py-2 rounded-lg border border-primary/50 hover:bg-primary/10 transition-all duration-200"
                 aria-label="Sign out"
               >
@@ -65,7 +77,7 @@ const Index = () => {
         </div>
       </nav>
       
-      <AccessibleTypingTutor />
+      {user && <AccessibleTypingTutor />}
     </div>
   );
 };
