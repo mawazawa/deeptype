@@ -1,0 +1,50 @@
+{
+  "composer": {
+    "enhancedSearch": {
+      "enabled": true,
+      "providers": [
+        {
+          "name": "perplexity",
+          "type": "api",
+          "config": {
+            "apiKey": "${PERPLEXITY_API_KEY}",
+            "model": "sonar-pro",
+            "baseUrl": "https://api.perplexity.ai"
+          }
+        }
+      ]
+    },
+    "shortcuts": {
+      "togglePerplexity": "cmd+shift+p",
+      "searchWithPerplexity": "cmd+k"
+    },
+    "commands": [
+      {
+        "name": "Search with Perplexity",
+        "command": "cursor.search.perplexity",
+        "shortcut": "cmd+k"
+      },
+      {
+        "name": "Toggle Perplexity Integration",
+        "command": "cursor.toggle.perplexity",
+        "shortcut": "cmd+shift+p"
+      }
+    ],
+    "contextProviders": [
+      {
+        "name": "perplexity",
+        "type": "search",
+        "config": {
+          "maxResults": 5,
+          "searchTypes": ["code", "documentation", "discussion"],
+          "includeSnippets": true
+        }
+      }
+    ]
+  },
+  "search": {
+    "defaultProvider": "perplexity",
+    "enhanceResults": true,
+    "streamResults": true
+  }
+}

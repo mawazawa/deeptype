@@ -16,8 +16,14 @@
  * Finger positions for touch typing
  */
 export type FingerPosition =
-  | 'left-pinky' | 'left-ring' | 'left-middle' | 'left-index'
-  | 'right-index' | 'right-middle' | 'right-ring' | 'right-pinky';
+  | "left-pinky"
+  | "left-ring"
+  | "left-middle"
+  | "left-index"
+  | "right-index"
+  | "right-middle"
+  | "right-ring"
+  | "right-pinky";
 
 /**
  * Metadata for each key on the keyboard
@@ -27,7 +33,12 @@ export interface KeyMetadata {
   finger: FingerPosition;
   frequencyScore: number;
   soundProfile: string;
-  hapticPattern: HapticPattern;
+  hapticPattern: {
+    intensity: number;
+    duration: number;
+    pattern: number[];
+    description: string;
+  };
 }
 
 /**
@@ -39,14 +50,14 @@ export interface UserProfile {
   accuracy: number;
   wpm: number;
   weakKeys: string[];
-  learningStyle: 'visual' | 'auditory' | 'kinesthetic';
+  learningStyle: "visual" | "auditory" | "kinesthetic";
   recentMistakes: Array<{ actual: string; expected: string }>;
   focusAreas: string[];
   preferences: {
     soundEnabled: boolean;
     hapticEnabled: boolean;
     visualGuides: boolean;
-    keyboardLayout: 'qwerty' | 'dvorak' | 'colemak';
+    keyboardLayout: "qwerty" | "dvorak" | "colemak";
   };
 }
 
@@ -63,7 +74,7 @@ export interface Lesson {
     category?: string;
     tags?: string[];
     source?: string;
-    difficulty?: 'beginner' | 'intermediate' | 'advanced';
+    difficulty?: "beginner" | "intermediate" | "advanced";
   };
 }
 
@@ -99,6 +110,7 @@ export interface Analysis {
     pattern: string;
     frequency: number;
     suggestion: string;
+    impact?: number;
   }>;
   speedTrends: Array<{
     timestamp: string;
@@ -143,31 +155,19 @@ export interface TutorFeedback {
 }
 
 /**
- * Haptic feedback pattern
- */
-export interface HapticPattern {
-  intensity: number;
-  duration: number;
-  pattern: number[];
-  description: string;
-}
-
-/**
  * Performance metrics for analytics
  */
 export interface TypingMetrics {
   userId: string;
   sessionId: string;
   timestamp: number;
-  metrics: {
-    wpm: number;
-    accuracy: number;
-    errorRate: number;
-    backspaceCount: number;
-    pauseCount: number;
-    totalTime: number;
-    activeTime: number;
-  };
+  wpm: number;
+  accuracy: number;
+  errorRate: number;
+  backspaceCount: number;
+  pauseCount: number;
+  totalTime: number;
+  activeTime: number;
   heatmap: Record<string, number>;
   progression: {
     levelProgress: number;

@@ -1,0 +1,19 @@
+{
+  "perplexity": {
+    "apiKey": "${PERPLEXITY_API_KEY}",
+    "model": "sonar-pro",
+    "maxTokens": 4000,
+    "temperature": 0.3,
+    "searchOptions": {
+      "enhanceComposer": true,
+      "enhanceSearch": true,
+      "streamResults": true
+    },
+    "contextWindow": {
+      "enabled": true,
+      "maxFiles": 10,
+      "includeRecentFiles": true,
+      "includeOpenFiles": true
+    }
+  }
+}

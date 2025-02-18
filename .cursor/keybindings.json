@@ -1,0 +1,19 @@
+{
+          "keybindings": [
+                    {
+                              "key": "cmd+k",
+                              "command": "cursor.search.perplexity",
+                              "when": "editorTextFocus"
+                    },
+                    {
+                              "key": "cmd+shift+p",
+                              "command": "cursor.toggle.perplexity",
+                              "when": "editorTextFocus"
+                    },
+                    {
+                              "key": "cmd+alt+p",
+                              "command": "cursor.perplexity.enhanceSelection",
+                              "when": "editorHasSelection"
+                    }
+          ]
+}
