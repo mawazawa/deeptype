@@ -1,0 +1,49 @@
+@tailwind components;
+
+@layer components {
+  /* Performance Chart Styles */
+  .recharts-tooltip-wrapper {
+    @apply !bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg;
+  }
+
+  .recharts-tooltip-label {
+    @apply text-sm font-medium text-foreground p-2;
+  }
+
+  .recharts-tooltip-item {
+    @apply text-xs text-muted-foreground px-2 pb-2;
+  }
+
+  /* Keyboard Styles */
+  .key-highlight {
+    @apply relative overflow-hidden;
+  }
+
+  .key-highlight::after {
+    content: '';
+    @apply absolute inset-0 bg-primary/10 transform scale-0 transition-transform duration-200;
+  }
+
+  .key-highlight:hover::after {
+    @apply scale-100;
+  }
+
+  /* Loading States */
+  .loading {
+    @apply relative pointer-events-none opacity-60;
+  }
+
+  .loading::after {
+    content: '';
+    @apply absolute inset-0 bg-background/50 backdrop-blur-sm;
+  }
+
+  /* Accessibility Styles */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+}

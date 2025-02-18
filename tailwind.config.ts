@@ -1,38 +1,69 @@
-import { Config } from 'tailwindcss'
+import type { Config } from 'tailwindcss'
+import { fontFamily } from "tailwindcss/defaultTheme"
 
-const config: Config = {
+// Helper function to create semantic color definitions
+const createSemanticColor = (name: string) => ({
+  DEFAULT: `hsl(var(--${name}))`,
+  foreground: `hsl(var(--${name}-foreground))`
+});
+
+// Helper function to create animation definitions
+const createAnimation = (name: string, duration = "0.5s", timing = "ease-out") => ({
+  [`${name}`]: `${name} ${duration} ${timing} forwards`,
+  [`${name}-infinite`]: `${name} ${duration} ${timing} infinite`,
+});
+
+const config = {
   darkMode: ["class"],
-  content: ["./src/**/*.{ts,tsx}"],
+  content: [
+    "./src/**/*.{ts,tsx}",
+    "./src/components/**/*.{ts,tsx}",
+    "./src/app/**/*.{ts,tsx}",
+  ],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       colors: {
-        border: "rgb(38, 38, 38)",
-        background: "rgb(0, 0, 0)",
-        foreground: "rgb(250, 250, 250)",
-        primary: "rgb(250, 250, 250)",
-        secondary: "rgb(115, 115, 115)",
-        accent: "rgb(191, 191, 191)",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: createSemanticColor('primary'),
+        secondary: createSemanticColor('secondary'),
+        destructive: createSemanticColor('destructive'),
+        muted: createSemanticColor('muted'),
+        accent: createSemanticColor('accent'),
+        popover: createSemanticColor('popover'),
+        card: createSemanticColor('card'),
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: [
-          "system-ui",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Roboto",
-          "sans-serif",
-        ],
+        sans: ["var(--font-sans)", ...fontFamily.sans],
+        mono: ["var(--font-mono)", ...fontFamily.mono],
       },
       animation: {
-        "fade-in": "fadeIn 0.5s ease-out forwards",
-        "slide-up": "slideUp 0.5s ease-out forwards",
-        "slide-in-from-left": "slideInFromLeft 0.5s ease-out forwards",
-        "slide-in-from-right": "slideInFromRight 0.5s ease-out forwards",
-        "slide-in-from-top": "slideInFromTop 0.5s ease-out forwards",
-        "slide-in-from-bottom": "slideInFromBottom 0.5s ease-out forwards",
-        "scale-in": "scaleIn 0.5s ease-out forwards",
-        "scale-out": "scaleOut 0.5s ease-out forwards",
-        pulse: "pulse 2s infinite",
+        ...createAnimation("fade-in"),
+        ...createAnimation("slide-up"),
+        ...createAnimation("slide-in-from-left"),
+        ...createAnimation("slide-in-from-right"),
+        ...createAnimation("slide-in-from-top"),
+        ...createAnimation("slide-in-from-bottom"),
+        ...createAnimation("scale-in"),
+        ...createAnimation("scale-out"),
         "cursor-blink": "cursor-blink 1s step-end infinite",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
@@ -42,41 +73,37 @@ const config: Config = {
         "bounce-subtle": "bounceSubtle 2s infinite",
       },
       keyframes: {
-        "fadeIn": {
+        "fade-in": {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
-        "slideUp": {
+        "slide-up": {
           "0%": { transform: "translateY(20px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
-        "slideInFromLeft": {
+        "slide-in-from-left": {
           "0%": { transform: "translateX(-100%)", opacity: "0" },
           "100%": { transform: "translateX(0)", opacity: "1" },
         },
-        "slideInFromRight": {
+        "slide-in-from-right": {
           "0%": { transform: "translateX(100%)", opacity: "0" },
           "100%": { transform: "translateX(0)", opacity: "1" },
         },
-        "slideInFromTop": {
+        "slide-in-from-top": {
           "0%": { transform: "translateY(-100%)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
-        "slideInFromBottom": {
+        "slide-in-from-bottom": {
           "0%": { transform: "translateY(100%)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
-        "scaleIn": {
+        "scale-in": {
           "0%": { transform: "scale(0.95)", opacity: "0" },
           "100%": { transform: "scale(1)", opacity: "1" },
         },
-        "scaleOut": {
+        "scale-out": {
           "0%": { transform: "scale(1)", opacity: "1" },
           "100%": { transform: "scale(0.95)", opacity: "0" },
-        },
-        "pulse": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.5" },
         },
         "cursor-blink": {
           "0%, 100%": { opacity: "1" },
@@ -98,7 +125,7 @@ const config: Config = {
             backgroundPosition: '1000px 0',
           },
         },
-        "bounceSubtle": {
+        "bounce-subtle": {
           "0%, 100%": {
             transform: "translateY(0)",
           },
@@ -112,7 +139,21 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
-}
+  plugins: [
+    // @ts-expect-error - Plugin types are not available
+    (await import('@tailwindcss/typography')).default,
+    // @ts-expect-error - Plugin types are not available
+    (await import('tailwindcss-animate')).default,
+    // Add plugin for better dark mode handling
+    function({ addBase }) {
+      addBase({
+        ':root': {
+          '--font-sans': fontFamily.sans.join(', '),
+          '--font-mono': fontFamily.mono.join(', '),
+        },
+      });
+    },
+  ],
+} satisfies Config;
 
 export default config
