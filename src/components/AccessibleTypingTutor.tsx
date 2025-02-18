@@ -37,6 +37,15 @@ declare global {
   }
 }
 
+interface TypingHistory {
+  id: string;
+  user_id: string;
+  created_at: string;
+  words_per_minute: number;
+  accuracy_percentage: number;
+  lesson_level: string;
+}
+
 const AccessibleTypingTutor = () => {
   const [text, setText] = useState("");
   const [target, setTarget] = useState("Press any key to begin");
@@ -157,7 +166,7 @@ const AccessibleTypingTutor = () => {
   };
 
   const calculateResults = useCallback(async () => {
-    if (!startTime) return;
+    if (!startTime || !user) return;
     
     const endTime = Date.now();
     const timeInMinutes = (endTime - startTime) / 1000 / 60;
@@ -193,40 +202,43 @@ const AccessibleTypingTutor = () => {
     }
 
     if (user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          words_per_minute: wpm,
-          accuracy_percentage: accuracy,
-          last_lesson_date: new Date().toISOString()
-        })
-        .eq('id', user.id);
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            words_per_minute: wpm,
+            accuracy_percentage: accuracy,
+            last_lesson_date: new Date().toISOString()
+          })
+          .eq('id', user.id);
 
-      const { error: historyError } = await supabase
-        .from('typing_history')
-        .insert([
-          {
+        const { error: historyError } = await supabase
+          .from('typing_history')
+          .insert({
             user_id: user.id,
             words_per_minute: wpm,
             accuracy_percentage: accuracy,
             lesson_level: currentLevel
-          }
-        ]);
+          });
 
-      if (profileError || historyError) {
-        console.error('Error saving results:', profileError || historyError);
-        toast({
-          title: "Error saving results",
-          description: "Your progress couldn't be saved. Please try again.",
-          variant: "destructive",
-        });
-      } else {
+        if (profileError || historyError) {
+          throw profileError || historyError;
+        }
+
         setPerformanceHistory(prev => [...prev, {
           date: new Date().toISOString(),
           wpm,
           accuracy
         }]);
+
         await fetchUserStats(user.id);
+      } catch (error) {
+        console.error('Error saving results:', error);
+        toast({
+          title: "Error saving results",
+          description: "Your progress couldn't be saved. Please try again.",
+          variant: "destructive",
+        });
       }
     }
 
@@ -241,7 +253,7 @@ const AccessibleTypingTutor = () => {
     setText("");
     setTarget(getNextLesson());
     setIsLoading(false);
-  }, [startTime, target, errorCount, text, toast, isTutorEnabled, user, currentLevel]);
+  }, [startTime, target, errorCount, text, toast, isTutorEnabled, user, currentLevel, announce, fetchUserStats]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -380,7 +392,7 @@ const AccessibleTypingTutor = () => {
         .order('created_at', { ascending: true });
 
       if (!error && data) {
-        setPerformanceHistory(data.map(record => ({
+        setPerformanceHistory(data.map((record: TypingHistory) => ({
           date: record.created_at,
           wpm: record.words_per_minute,
           accuracy: record.accuracy_percentage

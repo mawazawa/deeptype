@@ -36,6 +36,33 @@ export type Database = {
         }
         Relationships: []
       }
+      typing_history: {
+        Row: {
+          accuracy_percentage: number
+          created_at: string
+          id: string
+          lesson_level: string
+          user_id: string
+          words_per_minute: number
+        }
+        Insert: {
+          accuracy_percentage: number
+          created_at?: string
+          id?: string
+          lesson_level: string
+          user_id: string
+          words_per_minute: number
+        }
+        Update: {
+          accuracy_percentage?: number
+          created_at?: string
+          id?: string
+          lesson_level?: string
+          user_id?: string
+          words_per_minute?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
