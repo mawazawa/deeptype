@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface KeyProps {
@@ -14,11 +13,11 @@ const Key = ({ label, width = "w-12", isPressed = false, isNext = false, isSpeci
     className={`
       h-12 ${width} rounded-lg border border-border/50 
       flex items-center justify-center
-      transition-all duration-150
+      transition-all duration-300
       ${isPressed 
         ? "bg-primary/20 text-primary border-primary shadow-[0_0_10px_rgba(250,250,250,0.2)]" 
         : isNext
-          ? "bg-green-500/20 text-green-400 border-green-500 shadow-[0_0_10px_rgba(0,255,0,0.2)] animate-pulse"
+          ? "bg-green-500/10 text-green-400 border-green-500 shadow-[0_0_10px_rgba(0,255,0,0.1)] animate-[pulse_3s_ease-in-out_infinite]"
           : "bg-black/50 text-secondary hover:bg-black/70"}
       ${isSpecial ? "text-xs" : "text-sm"}
       backdrop-blur-sm

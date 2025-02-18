@@ -1,7 +1,6 @@
+import { Config } from 'tailwindcss'
 
-import type { Config } from "tailwindcss";
-
-export default {
+const config: Config = {
   darkMode: ["class"],
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
@@ -28,22 +27,29 @@ export default {
         "fade-in": "fadeIn 0.5s ease-out forwards",
         "slide-up": "slideUp 0.5s ease-out forwards",
         pulse: "pulse 2s infinite",
+        "cursor-blink": "cursor-blink 1s step-end infinite"
       },
       keyframes: {
-        fadeIn: {
+        "fadeIn": {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
-        slideUp: {
+        "slideUp": {
           "0%": { transform: "translateY(20px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
-        pulse: {
+        "pulse": {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.5" },
         },
+        "cursor-blink": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0" }
+        }
       },
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+}
+
+export default config

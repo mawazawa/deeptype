@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Settings, Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import VisualKeyboard from "./VisualKeyboard";
 import PerformanceChart from "./PerformanceChart";
 
@@ -39,7 +39,7 @@ declare global {
 
 const AccessibleTypingTutor = () => {
   const [text, setText] = useState("");
-  const [target, setTarget] = useState("Welcome to the accessible typing tutor. Press any key to begin.");
+  const [target, setTarget] = useState("Press any key to begin");
   const [isListening, setIsListening] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [errorCount, setErrorCount] = useState(0);
@@ -58,6 +58,7 @@ const AccessibleTypingTutor = () => {
     wpm: number;
     accuracy: number;
   }>>([]);
+  const [showWelcome, setShowWelcome] = useState(true);
 
   const { toast } = useToast();
   const announcer = useRef<HTMLDivElement>(null);
@@ -245,7 +246,12 @@ const AccessibleTypingTutor = () => {
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     
-    if (target.includes("Press any key")) return;
+    if (showWelcome) {
+      setShowWelcome(false);
+      setTarget(LESSON_SETS.beginner[0]);
+      setText("");
+      return;
+    }
     
     if (!startTime) {
       setStartTime(Date.now());
@@ -270,6 +276,29 @@ const AccessibleTypingTutor = () => {
       });
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showWelcome) {
+        setShowWelcome(false);
+        setTarget(LESSON_SETS.beginner[0]);
+        setText("");
+      }
+      setPressedKey(e.key);
+    };
+
+    const handleKeyUp = () => {
+      setPressedKey(null);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [showWelcome]);
 
   const toggleVoiceControl = () => {
     setIsListening(prev => !prev);
@@ -341,24 +370,6 @@ const AccessibleTypingTutor = () => {
   }, [target]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      setPressedKey(e.key);
-    };
-
-    const handleKeyUp = () => {
-      setPressedKey(null);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
-
-  useEffect(() => {
     const fetchPerformanceHistory = async () => {
       if (!user) return;
 
@@ -393,134 +404,114 @@ const AccessibleTypingTutor = () => {
         role="status" 
         aria-live="polite"
       />
+      {showWelcome && (
+        <div className="fixed inset-0 bg-background/95 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold mb-8">Welcome to the Typing Tutor</h1>
+            <p className="text-xl text-secondary animate-pulse">Press any key to begin</p>
+          </div>
+        </div>
+      )}
 
       <div className="w-full max-w-2xl mb-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold" aria-label="Accessible Typing Tutor">
-            Accessible Typing Tutor
-          </h1>
-          {user && (
-            <div className="text-sm text-secondary bg-secondary/10 p-2 rounded-lg">
-              <p>Welcome, {user.email}</p>
-              {stats && (
-                <p className="mt-1">
-                  Average: {stats.averageWpm} WPM | {stats.averageAccuracy}% accuracy
-                </p>
-              )}
+          <div className="flex gap-4">
+            <button
+              onClick={() => setIsListening(prev => !prev)}
+              className={`p-3 rounded-lg transition-all duration-300 ${
+                isListening ? "bg-primary/20 text-primary" : "bg-secondary/10"
+              }`}
+            >
+              {isListening ? "🎤 Listening..." : "🎤"}
+            </button>
+            <button
+              onClick={() => setIsMuted(prev => !prev)}
+              className="p-3 rounded-lg bg-secondary/10"
+            >
+              {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            </button>
+          </div>
+          {user && stats && (
+            <div className="text-sm text-secondary">
+              Average: {stats.averageWpm} WPM | {stats.averageAccuracy}% accuracy
             </div>
           )}
         </div>
         
-        <div className="flex gap-4 mb-8">
-          <button
-            onClick={toggleVoiceControl}
-            className={`flex-1 p-4 rounded-lg transition-all duration-300 backdrop-blur-lg border ${
-              isListening 
-                ? "border-primary bg-primary/10 animate-pulse" 
-                : "border-border bg-background/50"
-            }`}
-            aria-label={isListening ? "Voice control active (click to disable)" : "Enable voice control"}
-          >
-            {isListening ? "🎤 Listening..." : "🎤 Enable Voice Control"}
-          </button>
-
-          <button
-            onClick={() => setIsTutorEnabled(prev => !prev)}
-            className={`flex-1 p-4 rounded-lg transition-all duration-300 backdrop-blur-lg border ${
-              isTutorEnabled 
-                ? "border-primary bg-primary/10" 
-                : "border-border bg-background/50"
-            }`}
-            aria-label={isTutorEnabled ? "AI Tutor enabled (click to disable)" : "Enable AI Tutor"}
-          >
-            {isTutorEnabled ? "🤖 AI Tutor Active" : "🤖 Enable AI Tutor"}
-          </button>
-
-          <button
-            onClick={() => setIsMuted(prev => !prev)}
-            className={`p-4 rounded-lg transition-all duration-300 backdrop-blur-lg border ${
-              isMuted 
-                ? "border-destructive bg-destructive/10" 
-                : "border-border bg-background/50"
-            }`}
-            aria-label={isMuted ? "Unmute voice feedback" : "Mute voice feedback"}
-          >
-            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </button>
+        <div className="space-y-8 p-8 rounded-lg border border-border/50 bg-black/30 backdrop-blur-sm">
+          <div className="relative">
+            <p className="text-4xl font-mono text-secondary mb-4 transition-all duration-300">
+              {target}
+            </p>
+            <div className="h-px bg-border/50 my-8" />
+            <div className="relative">
+              <input
+                ref={inputRef}
+                type="text"
+                value={text}
+                onChange={handleInput}
+                className="w-full bg-transparent text-4xl font-mono focus:outline-none focus:ring-0 transition-all duration-300"
+                style={{
+                  caretColor: 'currentcolor',
+                  animation: 'cursor-blink 1s step-end infinite'
+                }}
+                autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck="false"
+              />
+              <div 
+                className="absolute bottom-0 left-0 w-full h-0.5 bg-primary/50 origin-left transition-transform duration-300"
+                style={{
+                  transform: `scaleX(${text.length / target.length})`
+                }}
+              />
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="text-sm text-secondary mb-4">
-          Level: {currentLevel.charAt(0).toUpperCase() + currentLevel.slice(1)} | 
-          Lesson {lessonIndex + 1} of {LESSON_SETS[currentLevel].length}
+      <div className="w-full max-w-6xl mt-8">
+        <VisualKeyboard 
+          pressedKey={pressedKey} 
+          nextKey={getNextExpectedKey()} 
+        />
+      </div>
+
+      {user && performanceHistory.length > 0 && (
+        <div className="w-full max-w-6xl">
+          <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
+          <PerformanceChart data={performanceHistory} />
         </div>
+      )}
 
+      {feedback && isTutorEnabled && (
         <div 
-          className="p-6 rounded-lg border border-border bg-black/50 backdrop-blur-lg mb-6"
-          aria-label="Typing area"
-          aria-describedby="typing-instructions"
+          className="p-4 rounded-lg border border-primary/50 bg-primary/5"
+          role="alert"
+          aria-live="polite"
         >
-          <p className="text-xl mb-4 text-secondary">Target text:</p>
-          <p className="text-2xl mb-6 font-mono" aria-live="polite">{target}</p>
-          
-          <div className="h-px bg-border mb-6" role="separator" />
-          
-          <p className="text-xl mb-4 text-secondary">Your input:</p>
-          <input
-            ref={inputRef}
-            type="text"
-            value={text}
-            onChange={handleInput}
-            className="w-full bg-transparent text-2xl font-mono min-h-[2em] focus:outline-none focus:ring-2 focus:ring-primary/50 rounded p-2"
-            aria-label="Type here"
-            autoComplete="off"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck="false"
-          />
+          <h2 className="text-lg font-semibold mb-2">AI Feedback</h2>
+          <p className="text-secondary">{feedback}</p>
         </div>
+      )}
 
-        <div className="w-full max-w-6xl mt-8">
-          <VisualKeyboard 
-            pressedKey={pressedKey} 
-            nextKey={getNextExpectedKey()} 
-          />
-        </div>
-
-        {user && performanceHistory.length > 0 && (
-          <div className="w-full max-w-6xl">
-            <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
-            <PerformanceChart data={performanceHistory} />
-          </div>
-        )}
-
-        {feedback && isTutorEnabled && (
-          <div 
-            className="p-4 rounded-lg border border-primary/50 bg-primary/5"
-            role="alert"
-            aria-live="polite"
-          >
-            <h2 className="text-lg font-semibold mb-2">AI Feedback</h2>
-            <p className="text-secondary">{feedback}</p>
-          </div>
-        )}
-
-        {isLoading && isTutorEnabled && (
-          <div 
-            className="text-center text-secondary animate-pulse"
-            role="alert"
-            aria-live="polite"
-          >
-            Getting AI feedback...
-          </div>
-        )}
-
+      {isLoading && isTutorEnabled && (
         <div 
-          id="typing-instructions"
-          className="mt-8 text-center text-secondary animate-slide-up"
+          className="text-center text-secondary animate-pulse"
+          role="alert"
+          aria-live="polite"
         >
-          <p>Press Tab to navigate, Space to select, and use arrow keys for navigation.</p>
-          <p>Voice commands: Say "start" to begin, "stop" to disable voice control.</p>
+          Getting AI feedback...
         </div>
+      )}
+
+      <div 
+        id="typing-instructions"
+        className="mt-8 text-center text-secondary animate-slide-up"
+      >
+        <p>Press Tab to navigate, Space to select, and use arrow keys for navigation.</p>
+        <p>Voice commands: Say "start" to begin, "stop" to disable voice control.</p>
       </div>
     </div>
   );
