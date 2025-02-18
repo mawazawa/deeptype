@@ -50,13 +50,13 @@ const AccessibleTypingTutor = () => {
   const [lessonIndex, setLessonIndex] = useState(0);
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<{ averageWpm: number; averageAccuracy: number } | null>(null);
-  
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
+
   const { toast } = useToast();
   const announcer = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const voices = useRef<SpeechSynthesisVoice[]>([]);
 
-  // Check auth state
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -90,7 +90,6 @@ const AccessibleTypingTutor = () => {
     }
   };
 
-  // Initialize speech synthesis voices
   useEffect(() => {
     const loadVoices = () => {
       voices.current = window.speechSynthesis.getVoices();
@@ -131,7 +130,6 @@ const AccessibleTypingTutor = () => {
   const getNextLesson = () => {
     const currentLessons = LESSON_SETS[currentLevel];
     if (lessonIndex >= currentLessons.length - 1) {
-      // Move to next level if available
       if (currentLevel === 'beginner') {
         setCurrentLevel('intermediate');
         setLessonIndex(0);
@@ -141,7 +139,6 @@ const AccessibleTypingTutor = () => {
         setLessonIndex(0);
         return LESSON_SETS.advanced[0];
       } else {
-        // Reset to beginning of current level
         setLessonIndex(0);
         return currentLessons[0];
       }
@@ -187,7 +184,6 @@ const AccessibleTypingTutor = () => {
       }
     }
 
-    // Save results if user is logged in
     if (user) {
       const { error } = await supabase
         .from('profiles')
@@ -206,7 +202,6 @@ const AccessibleTypingTutor = () => {
           variant: "destructive",
         });
       } else {
-        // Update local stats
         await fetchUserStats(user.id);
       }
     }
@@ -217,7 +212,6 @@ const AccessibleTypingTutor = () => {
       duration: 5000,
     });
 
-    // Set next lesson
     setStartTime(null);
     setErrorCount(0);
     setText("");
@@ -332,7 +326,7 @@ const AccessibleTypingTutor = () => {
         aria-live="polite"
       />
 
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-2xl mb-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-4xl font-bold" aria-label="Accessible Typing Tutor">
             Accessible Typing Tutor
@@ -415,6 +409,10 @@ const AccessibleTypingTutor = () => {
             autoCorrect="off"
             spellCheck="false"
           />
+        </div>
+
+        <div className="w-full max-w-6xl mt-8">
+          <VisualKeyboard pressedKey={pressedKey} />
         </div>
 
         {feedback && isTutorEnabled && (
