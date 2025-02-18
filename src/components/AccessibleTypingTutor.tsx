@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Settings, Volume2, VolumeX } from "lucide-react";
 import VisualKeyboard from "./VisualKeyboard";
+import PerformanceChart from "./PerformanceChart";
 
 const LESSON_SETS = {
   beginner: [
@@ -52,6 +53,11 @@ const AccessibleTypingTutor = () => {
   const [user, setUser] = useState<User | null>(null);
   const [stats, setStats] = useState<{ averageWpm: number; averageAccuracy: number } | null>(null);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const [performanceHistory, setPerformanceHistory] = useState<Array<{
+    date: string;
+    wpm: number;
+    accuracy: number;
+  }>>([]);
 
   const { toast } = useToast();
   const announcer = useRef<HTMLDivElement>(null);
@@ -186,7 +192,7 @@ const AccessibleTypingTutor = () => {
     }
 
     if (user) {
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           words_per_minute: wpm,
@@ -195,14 +201,30 @@ const AccessibleTypingTutor = () => {
         })
         .eq('id', user.id);
 
-      if (error) {
-        console.error('Error saving results:', error);
+      const { error: historyError } = await supabase
+        .from('typing_history')
+        .insert([
+          {
+            user_id: user.id,
+            words_per_minute: wpm,
+            accuracy_percentage: accuracy,
+            lesson_level: currentLevel
+          }
+        ]);
+
+      if (profileError || historyError) {
+        console.error('Error saving results:', profileError || historyError);
         toast({
           title: "Error saving results",
           description: "Your progress couldn't be saved. Please try again.",
           variant: "destructive",
         });
       } else {
+        setPerformanceHistory(prev => [...prev, {
+          date: new Date().toISOString(),
+          wpm,
+          accuracy
+        }]);
         await fetchUserStats(user.id);
       }
     }
@@ -218,7 +240,7 @@ const AccessibleTypingTutor = () => {
     setText("");
     setTarget(getNextLesson());
     setIsLoading(false);
-  }, [startTime, target, errorCount, text, toast, isTutorEnabled, user]);
+  }, [startTime, target, errorCount, text, toast, isTutorEnabled, user, currentLevel]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -336,6 +358,28 @@ const AccessibleTypingTutor = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const fetchPerformanceHistory = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('typing_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        setPerformanceHistory(data.map(record => ({
+          date: record.created_at,
+          wpm: record.words_per_minute,
+          accuracy: record.accuracy_percentage
+        })));
+      }
+    };
+
+    fetchPerformanceHistory();
+  }, [user]);
+
   return (
     <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center space-y-8 animate-fade-in">
       <div 
@@ -433,6 +477,13 @@ const AccessibleTypingTutor = () => {
         <div className="w-full max-w-6xl mt-8">
           <VisualKeyboard pressedKey={pressedKey} />
         </div>
+
+        {user && performanceHistory.length > 0 && (
+          <div className="w-full max-w-6xl">
+            <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
+            <PerformanceChart data={performanceHistory} />
+          </div>
+        )}
 
         {feedback && isTutorEnabled && (
           <div 
