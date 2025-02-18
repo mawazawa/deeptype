@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Trophy } from "lucide-react";
 import VisualKeyboard from "./VisualKeyboard";
 import PerformanceChart from "./PerformanceChart";
+import { analyzeTypingPatterns, generateAdaptiveLessons, type TypingAnalysis } from "@/utils/typingAnalytics";
 
 const LESSON_SETS = {
   beginner: [
@@ -68,6 +69,10 @@ const AccessibleTypingTutor = () => {
     accuracy: number;
   }>>([]);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [mistakes, setMistakes] = useState<Array<{ actual: string; expected: string }>>([]);
+  const [recentWPMs, setRecentWPMs] = useState<number[]>([]);
+  const [analysis, setAnalysis] = useState<TypingAnalysis | null>(null);
+  const [streak, setStreak] = useState(0);
 
   const { toast } = useToast();
   const announcer = useRef<HTMLDivElement>(null);
@@ -174,6 +179,18 @@ const AccessibleTypingTutor = () => {
     const wpm = Math.round(wordsTyped / timeInMinutes);
     const accuracy = Math.round(((target.length - errorCount) / target.length) * 100);
 
+    setRecentWPMs(prev => [...prev.slice(-9), wpm]);
+    const newAnalysis = analyzeTypingPatterns(mistakes, [...recentWPMs, wpm]);
+    setAnalysis(newAnalysis);
+
+    if (accuracy > 90) {
+      setStreak(prev => prev + 1);
+    } else {
+      setStreak(0);
+    }
+
+    const adaptiveLessons = generateAdaptiveLessons(newAnalysis, currentLevel);
+    
     announce(`Lesson completed! Your speed was ${wpm} words per minute with ${accuracy}% accuracy.`);
 
     if (isTutorEnabled) {
@@ -253,7 +270,7 @@ const AccessibleTypingTutor = () => {
     setText("");
     setTarget(getNextLesson());
     setIsLoading(false);
-  }, [startTime, target, errorCount, text, toast, isTutorEnabled, user, currentLevel, announce, fetchUserStats]);
+  }, [startTime, target, errorCount, text, toast, isTutorEnabled, user, currentLevel, mistakes, recentWPMs]);
 
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -279,6 +296,7 @@ const AccessibleTypingTutor = () => {
       setErrorCount(prev => prev + 1);
       const expectedChar = target[text.length];
       const lastChar = value[value.length - 1];
+      setMistakes(prev => [...prev, { actual: lastChar, expected: expectedChar }]);
       announce(`Incorrect. Expected ${expectedChar}, got ${lastChar}`);
       toast({
         title: "Incorrect key",
@@ -448,6 +466,17 @@ const AccessibleTypingTutor = () => {
               Average: {stats.averageWpm} WPM | {stats.averageAccuracy}% accuracy
             </div>
           )}
+          {streak > 0 && (
+            <div className="flex items-center gap-2 text-primary animate-scale-in">
+              <Trophy className="h-5 w-5" />
+              <span>Streak: {streak}</span>
+            </div>
+          )}
+          {analysis && (
+            <div className="text-sm text-secondary">
+              Consistency: {analysis.consistencyScore}%
+            </div>
+          )}
         </div>
         
         <div className="space-y-8 p-8 rounded-lg border border-border/50 bg-black/30 backdrop-blur-sm">
@@ -494,6 +523,34 @@ const AccessibleTypingTutor = () => {
         <div className="w-full max-w-6xl">
           <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
           <PerformanceChart data={performanceHistory} />
+        </div>
+      )}
+
+      {analysis && (
+        <div className="w-full max-w-2xl p-4 rounded-lg border border-border/50 bg-black/30 backdrop-blur-sm">
+          <h3 className="text-lg font-semibold mb-4">Typing Analysis</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium mb-2">Common Mistakes</h4>
+              <ul className="space-y-2">
+                {analysis.commonMistakes.map((mistake, i) => (
+                  <li key={i} className="text-sm text-secondary">
+                    Typed "{mistake.character}" instead of "{mistake.expectedChar}" ({mistake.count}x)
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Problem Keys</h4>
+              <div className="flex flex-wrap gap-2">
+                {analysis.problemKeys.map((key, i) => (
+                  <span key={i} className="px-2 py-1 rounded-md bg-destructive/20 text-destructive text-sm">
+                    {key}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
