@@ -20,6 +20,8 @@ import Auth from '@/pages/Auth';
 import Profile from '@/pages/Profile';
 import Navigation from '@/components/layout/Navigation';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Leaderboard from '@/pages/Leaderboard';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,44 +36,70 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-background">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/auth" element={<Auth />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              {/* Public Routes */}
+              <Route
+                path="/auth"
+                element={
+                  <ErrorBoundary>
+                    <Auth />
+                  </ErrorBoundary>
+                }
+              />
 
-            {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <TypingTutor />
-                  </>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <>
-                    <Navigation />
-                    <Profile />
-                  </>
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <>
+                        <Navigation />
+                        <TypingTutor />
+                      </>
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <>
+                        <Navigation />
+                        <Profile />
+                      </>
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <>
+                        <Navigation />
+                        <Leaderboard />
+                      </>
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Catch-all route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
-      <Toaster />
-    </QueryClientProvider>
+              {/* Catch-all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+        <Toaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

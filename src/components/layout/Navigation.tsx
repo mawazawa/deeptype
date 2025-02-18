@@ -95,6 +95,12 @@ const Navigation: React.FC = () => {
             >
               Profile
             </Link>
+            <Link
+              to="/leaderboard"
+              className={location.pathname === '/leaderboard' ? 'text-foreground' : 'text-muted-foreground'}
+            >
+              Leaderboard
+            </Link>
           </div>
         </div>
 

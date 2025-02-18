@@ -15,12 +15,14 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSupabase } from '@/hooks/useSupabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Spinner } from '@/components/ui/spinner';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAchievements } from '@/hooks/useAchievements';
+import AchievementGrid from '@/components/achievements/AchievementGrid';
 
 interface Profile {
   id: string;
@@ -52,6 +54,7 @@ interface AchievementWithUnlockDate extends Achievement {
 
 const Profile: React.FC = () => {
   const { supabase } = useSupabase();
+  const { achievements, isLoading: isAchievementsLoading } = useAchievements();
 
   // Fetch user profile data
   const { data: profile, isLoading: isProfileLoading } = useQuery({
@@ -68,39 +71,6 @@ const Profile: React.FC = () => {
 
       if (error) throw error;
       return data as Profile;
-    },
-  });
-
-  // Fetch user achievements
-  const { data: achievements, isLoading: isAchievementsLoading } = useQuery({
-    queryKey: ['achievements'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { data, error } = await supabase
-        .from('user_achievements')
-        .select(`
-          achievements (
-            id,
-            name,
-            description,
-            icon
-          ),
-          unlocked_at
-        `)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      // Type assertion for the raw response data
-      const userAchievements = data as unknown as SupabaseUserAchievement[];
-
-      // Map to our desired format
-      return userAchievements.map(({ achievements, unlocked_at }) => ({
-        ...achievements,
-        unlocked_at,
-      }));
     },
   });
 
@@ -180,27 +150,12 @@ const Profile: React.FC = () => {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Achievements</CardTitle>
+          <CardDescription>
+            Track your progress and unlock achievements as you improve
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {achievements?.map((achievement) => (
-              <div
-                key={achievement.id}
-                className="flex flex-col items-center p-4 bg-muted rounded-lg"
-              >
-                <div className="w-12 h-12 flex items-center justify-center bg-background rounded-full mb-2">
-                  {achievement.icon}
-                </div>
-                <h3 className="font-medium text-center mb-1">{achievement.name}</h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  {achievement.description}
-                </p>
-                <Badge variant="secondary" className="mt-2">
-                  {new Date(achievement.unlocked_at).toLocaleDateString()}
-                </Badge>
-              </div>
-            ))}
-          </div>
+          <AchievementGrid progress={achievements} />
         </CardContent>
       </Card>
     </div>

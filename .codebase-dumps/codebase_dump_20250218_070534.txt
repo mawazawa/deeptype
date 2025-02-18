@@ -1,0 +1,475 @@
+=== SMART SAMPLED CODEBASE ===
+Generated: 2025-02-18 07:05:34
+Total files: 4
+Total tokens: 10,085
+
+Token allocation:
+- entry_points: 6,052 tokens remaining
+- components: 17,500 tokens remaining
+- lib: 10,000 tokens remaining
+- types: 5,000 tokens remaining
+- remaining: 1,363 tokens remaining
+
+================================================================================
+
+
+=== ./tsconfig.json ===
+Category: priority
+Tokens: 164
+Original size: 381.00B
+
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "noImplicitAny": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true,
+    "allowJs": true,
+    "noUnusedLocals": false,
+    "strictNullChecks": false
+  }
+}
+
+--------------------------------------------------------------------------------
+
+=== ./src/lib/utils.ts ===
+Category: priority
+Tokens: 2,350
+Original size: 5.44KB
+
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Module: Utilities                                                                              ║
+ * ║ Description: Common utility functions for class name merging and type manipulation             ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+/**
+ * Merge class names with Tailwind CSS classes
+ * @param inputs - Class names to merge
+ * @returns Merged class names
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+/**
+ * Format a date to a human-readable string
+ * @param date - Date to format
+ * @param options - Intl.DateTimeFormat options
+ * @returns Formatted date string
+ */
+export function formatDate(
+  date: Date,
+  options: Intl.DateTimeFormatOptions = {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }
+): string {
+  return new Intl.DateTimeFormat("en-US", options).format(date)
+}
+
+/**
+ * Format a number to a human-readable string with units
+ * @param value - Number to format
+ * @param unit - Unit to append
+ * @param decimals - Number of decimal places
+ * @returns Formatted number string
+ */
+export function formatNumber(
+  value: number,
+  unit: string = "",
+  decimals: number = 0
+): string {
+  const formatter = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
+  return `${formatter.format(value)}${unit ? ` ${unit}` : ""}`
+}
+
+/**
+ * Debounce a function
+ * @param fn - Function to debounce
+ * @param delay - Delay in milliseconds
+ * @returns Debounced function
+ */
+export function debounce<T extends (...args: any[]) => any>(
+  fn: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: NodeJS.Timeout
+
+  return function (...args: Parameters<T>) {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }
+}
+
+/**
+ * Throttle a function
+ * @param fn - Function to throttle
+ * @param limit - Time limit in milliseconds
+ * @returns Throttled function
+ */
+export function throttle<T extends (...args: any[]) => any>(
+  fn: T,
+  limit: number
+): (...args: Parameters<T>) => void {
+  let inThrottle: boolean
+  let lastResult: ReturnType<T>
+
+  return function (...args: Parameters<T>): void {
+    if (!inThrottle) {
+      inThrottle = true
+      lastResult = fn(...args)
+      setTimeout(() => (inThrottle = false), limit)
+    }
+  }
+}
+
+/**
+ * Generate a random string
+ * @param length - Length of the string
+ * @returns Random string
+ */
+export function randomString(length: number = 8): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+  return Array.from({ length }, () =>
+    chars.charAt(Math.floor(Math.random() * chars.length))
+  ).join("")
+}
+
+/**
+ * Deep clone an object
+ * @param obj - Object to clone
+ * @returns Cloned object
+ */
+export function deepClone<T>(obj: T): T {
+  if (obj === null || typeof obj !== "object") return obj
+  if (obj instanceof Date) return new Date(obj) as T
+  if (obj instanceof Array) return obj.map(deepClone) as T
+  if (obj instanceof Object) {
+    const copy = {} as Record<string, any>
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        copy[key] = deepClone(obj[key as keyof T])
+      }
+    }
+    return copy as T
+  }
+  throw new Error(`Unable to copy obj! Its type isn't supported.`)
+}
+
+/**
+ * Check if two objects are deeply equal
+ * @param obj1 - First object
+ * @param obj2 - Second object
+ * @returns Whether the objects are equal
+ */
+export function deepEqual(obj1: any, obj2: any): boolean {
+  if (obj1 === obj2) return true
+  if (
+    typeof obj1 !== "object" ||
+    typeof obj2 !== "object" ||
+    obj1 === null ||
+    obj2 === null
+  )
+    return false
+
+  const keys1 = Object.keys(obj1)
+  const keys2 = Object.keys(obj2)
+
+  if (keys1.length !== keys2.length) return false
+
+  for (const key of keys1) {
+    if (!keys2.includes(key)) return false
+    if (!deepEqual(obj1[key], obj2[key])) return false
+  }
+
+  return true
+}
+
+/**
+ * Convert a string to title case
+ * @param str - String to convert
+ * @returns Title case string
+ */
+export function toTitleCase(str: string): string {
+  return str.replace(
+    /\w\S*/g,
+    (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase()
+  )
+}
+
+/**
+ * Convert a string to kebab case
+ * @param str - String to convert
+ * @returns Kebab case string
+ */
+export function toKebabCase(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, "-")
+    .toLowerCase()
+}
+
+/**
+ * Convert a string to camel case
+ * @param str - String to convert
+ * @returns Camel case string
+ */
+export function toCamelCase(str: string): string {
+  return str
+    .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) =>
+      index === 0 ? word.toLowerCase() : word.toUpperCase()
+    )
+    .replace(/\s+/g, "")
+}
+
+--------------------------------------------------------------------------------
+
+=== ./package.json ===
+Category: priority
+Tokens: 1,434
+Original size: 2.91KB
+
+{
+  "name": "vite_react_shadcn_ts",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:dev": "vite build --mode development",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@hookform/resolvers": "^3.9.0",
+    "@radix-ui/react-accordion": "^1.2.0",
+    "@radix-ui/react-alert-dialog": "^1.1.1",
+    "@radix-ui/react-aspect-ratio": "^1.1.0",
+    "@radix-ui/react-avatar": "^1.1.0",
+    "@radix-ui/react-checkbox": "^1.1.1",
+    "@radix-ui/react-collapsible": "^1.1.0",
+    "@radix-ui/react-context-menu": "^2.2.1",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-dropdown-menu": "^2.1.1",
+    "@radix-ui/react-hover-card": "^1.1.1",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-menubar": "^1.1.1",
+    "@radix-ui/react-navigation-menu": "^1.2.0",
+    "@radix-ui/react-popover": "^1.1.1",
+    "@radix-ui/react-progress": "^1.1.0",
+    "@radix-ui/react-radio-group": "^1.2.0",
+    "@radix-ui/react-scroll-area": "^1.1.0",
+    "@radix-ui/react-select": "^2.1.1",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slider": "^1.2.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.1.0",
+    "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.6",
+    "@radix-ui/react-toggle": "^1.1.0",
+    "@radix-ui/react-toggle-group": "^1.1.0",
+    "@radix-ui/react-tooltip": "^1.1.4",
+    "@supabase/supabase-js": "^2.48.1",
+    "@tanstack/react-query": "^5.56.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.0.0",
+    "date-fns": "^3.6.0",
+    "embla-carousel-react": "^8.3.0",
+    "input-otp": "^1.2.4",
+    "lucide-react": "^0.462.0",
+    "next-themes": "^0.3.0",
+    "openai": "^4.85.1",
+    "react": "^18.3.1",
+    "react-day-picker": "^8.10.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.0",
+    "react-resizable-panels": "^2.1.3",
+    "react-router-dom": "^6.26.2",
+    "recharts": "^2.12.7",
+    "sonner": "^1.5.0",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "vaul": "^0.9.3",
+    "vercel": "^41.1.4",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@tailwindcss/typography": "^0.5.15",
+    "@types/node": "^22.5.5",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.9.0",
+    "eslint-plugin-react-hooks": "^5.1.0-rc.0",
+    "eslint-plugin-react-refresh": "^0.4.9",
+    "globals": "^15.9.0",
+    "lovable-tagger": "^1.1.3",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.11",
+    "typescript": "^5.5.3",
+    "typescript-eslint": "^8.0.1",
+    "vite": "^5.4.1",
+    "vitest": "^3.0.6"
+  }
+}
+
+--------------------------------------------------------------------------------
+
+=== ./README.md ===
+Category: special
+Tokens: 6,137
+Original size: 144.18KB
+Status: Truncated to fit token budget
+
+PRD DOCUMENT: 
+
+Understood! I will now compile all research, insights, and specifications into a **final, all-in-one dossier** that includes:
+
+- **Executive Summary & Branding** (DeepType by Empathy Labs, under the DeepHustle.ai project)
+- **Ultimate Pitch & Pitch Deck** (Both in Markdown format and separate file if possible)
+- **Comprehensive PRD** (Product Requirements Document)
+- **SWOT Analysis & Gap Analysis**
+- **Feature Breakdown & Roadmap** (Token-based deep research breakdown instead of timeframes)
+- **Accessibility-first UX/UI Guidelines** (ARIA descriptions, alt-text, voice-first UI details)
+- **Full Codebase** (Repository structure, written-out files, ASCII art headers for inclusivity, inline comments for easy comprehension)
+
+I'll ensure it is structured optimally, with **ultra-clear formatting using Markdown syntax** for headers, sections, and technical clarity.
+
+I'll get back with the fully compiled dossier shortly.
+
+# DeepType by Empathy Labs: Comprehensive Project Dossier
+
+## 1. Executive Summary & Branding
+
+**Vision Statement:** *Empower every individual – regardless of vision or ability – to master typing and digital communication through empathetic AI.* DeepType’s mission is to be an **AI-powered typing tutor** that enables blind and visually-impaired users to achieve keyboard proficiency, opening doors to education, employment, and independence. With a focus on **“accessible by design”**, DeepType bridges the digital divide by turning the keyboard into an inclusive gateway for all.
+
+**Naming & Brand Identity:** **DeepType** is the product name, reflecting the use of deep learning (“Deep”) to revolutionize touch typing (“Type”). It exists under the **DeepHustle.ai** project umbrella – an innovation initiative by **Empathy Labs**. Empathy Labs is the organization’s brand, emphasizing user-centric design and emotional intelligence in tech. The naming strategy ensures clarity: Empathy Labs conveys trust and compassion, DeepHustle.ai signals cutting-edge AI innovation, and DeepType itself clearly describes the product’s function. Together, they present a unified brand with a heart (Empathy) and a brain (Deep AI technology).
+
+**Market Positioning:** DeepType is positioned at the intersection of **assistive technology** and **ed-tech**. It targets a significant underserved market: the millions of people with visual impairments who require effective tools to learn keyboard skills. Globally, an estimated **43 million people are blind and 295 million have moderate-to-severe visual impairment** ([Bridging the Digital Disability Divide: Determinants of Internet Use among Visually Impaired Individuals in Thailand](https://www.mdpi.com/2673-7272/4/3/43#:~:text=difficulty%20seeing%20well%20at%20a,that%20the%20prevalence%20of%20visual)). Many of these individuals rely on screen readers (like JAWS or NVDA) to use computers, yet accessible typing training tools are scarce and outdated. DeepType aims to be the **premier digital solution for accessible typing education**, much like a “Duolingo for typing” tailored to blind and low-vision users. By leveraging AI and modern UX practices, it stands out from legacy offerings. The brand promise is empowerment: *DeepType gives users the confidence to navigate the digital world through touch typing.* This resonates strongly in a market where independence and employment are tightly linked to technological skills – especially when **over 70% of blind and visually-impaired adults face unemployment, partly due to limited access to training** ([Employment Barriers for the Blind and Visually Impaired — World Services for the Blind](https://www.wsblind.org/blog/2021/6/16/employment-barriers-for-the-blind-and-visually-impaired#:~:text=variety%20of%20reasons%20from%20lack,impaired%20and%20how%20to%20overcome)). DeepType will be marketed as an **inclusion-driven innovation**: not just another typing app, but a social impact tool that **combines empathy with technology** to transform lives. 
+
+## 2. Ultimate Pitch & Pitch Deck
+
+### High-Impact Introduction (The Elevator Pitch)
+Imagine **pressing a key** and unlocking a world of opportunity. DeepType is an AI-powered tutor that speaks, listens, and *understands*, turning the once tedious task of learning to type into an empowering journey for those who need it most. **DeepType by Empathy Labs** is *the first accessibility-first typing coach*, designed for the blind and visually impaired, but delightful for everyone. It’s like having a personal coach who never gets tired, never judges, and is available 24/7 – **“the Swiss Army Knife of typing tutors”** for all abilities.
+
+> **“Because everyone deserves a voice and a keyboard.”**
+
+### Key Differentiators & Competitive Edge
+- **🎯 Built for Accessibility from Day One:** Unlike generic typing programs, DeepType is built *ground-up for blind and low-vision users*. Every feature – from audio guidance to high-contrast visuals – follows accessibility best practices (WCAG 2.1, ARIA roles, etc.). This isn’t a retrofit; it’s a revolution. We don’t just meet compliance, we embrace **“accessibility-first”** design as our core ethos.
+- **🗣 Voice-First and Hands-On:** DeepType is a **voice-interactive tutor**. It speaks instructions and encouragement in natural language, and listens for commands. Users can navigate the entire learning experience with speech or a single button. This **voice-first interaction** means eyes-free, hassle-free learning – perfect for blind users and also convenient for anyone (think learning while keeping your eyes on another task).
+- **🤖 Adaptive AI Coach:** At the heart of DeepType is cutting-edge AI (including large language models) that adapts in real-time to the learner. Make a mistake? DeepType’s AI detects the pattern and offers **personalized feedback and exercises**. Struggling with certain letters? The AI dynamically adjusts the lesson to give extra practice where needed. No static lessons or one-size-fits-all curriculum – **DeepType learns the learner**.
+- **🌐 Cross-Platform Convenience:** Available on **web, desktop, and mobile** without separate development silos. Our tech stack enables writing code once and deploying everywhere, ensuring a consistent experience whether the user is on a Windows PC with a screen reader, a Mac, or a mobile device. DeepType even works offline for desktop (via an app) so it’s reliable in classrooms and areas with limited internet.
+- **💡 Competitive Edge over Legacy Tools:** Traditional solutions like *Talking Typing Teacher* rely on pre-recorded voices and fixed sc ([Talking Typing Teacher | BoundlessAT.com](https://www.boundlessat.com/Keyboards-Mice/Kids-Keyboards/Talking-Typing-Teacher?srsltid=AfmBOooJa3RWfZmlIyFJK2u1U4CjSpjyTTSi9TPWJ9WIqOAlzfRZIslD#:~:text=Talking%20Typing%20Teacher%20is%20a,Eager%20Eddie%20read%20the%20screen))L146】. DeepType, however, uses AI voices and natural language generation to provide **conversational, context-aware guidance**. Unlike screen readers (JAWS/NVDA) that simply echo keys, DeepType teaches with a curriculum, tracks progress, and gamifies the experience. And unlike costly enterprise software, DeepType aims to be affordable or free for end-users (with a sustainable business model backing it – see below).
+
+### Problem & Opportunity
+For a visually impaired person, learning to type is not just a skill – it’s a lifeline to the digital world. Yet current options are bleak: decades-old software with robotic feedback, expensive licenses, or relying on general screen readers that **don’t teach**. The result? Many blind individuals struggle with slow typing or never learn, limiting their potential in school and the workplace. **Unmet need:** an engaging, effective, and affordable way to learn keyboarding without sight.
+
+**Opportunity:** DeepType sits at the convergence of two rising tides – the advancement of AI in education, and the push for digital inclusion. Recent breakthroughs show the promise of AI in assistive tech (e.g., *Be My Eyes* integrating OpenAI’s GPT-4 to describe images for blind  ([Introducing Be My AI (formerly Virtual Volunteer) for People who are Blind or Have Low Vision, Powered by OpenAI’s GPT-4](https://www.bemyeyes.com/blog/introducing-be-my-eyes-virtual-volunteer#:~:text=a%20dynamic%20new%20image,a%20wide%20variety%20of%20tasks))1-L4】). Yet, no one has applied such AI prowess to *typing education* for the blind. We have the first-mover advantage to capture this niche and expand it to a broader audience (sighted users also benefit from voice-assisted, hands-free learning – think driving, or dyslexic learners using multi-sensory feedback). 
+
+DeepType can become the **gold standard** for accessible skills training, starting with typing and potentially expanding to other digital literacy skills. By solving a deeply specific problem with excellence, we build trust and brand loyalty in the assistive tech community.
+
+### Business Model & Monetization Strategy
+DeepType’s business model balances social impact with sustainability:
+
+- **Freemium Core:** The base product (core typing lessons and accessibility features) is **free for individual users**, ensuring that cost is never a barrier for those who need it most. This echoes the strategy of NVDA, the free screen reader that rapidly gained global adoption – now used by ~65% of screen reader  ([WebAIM: Screen Reader User Survey #10 Results](https://webaim.org/projects/screenreadersurvey10/#:~:text=NVDA%20is%20again%20the%20most,of%20respondents))1-L4】, surpassing its expensive rival JAWS.
+- **B2B and Institutional Licensing:** Revenue is generated by offering premium plans to schools, rehabilitation centers, and enterprises. For example:
+  - **Education Edition:** Schools for the blind or K-12 special education programs can subscribe to a managed DeepType Classroom package, which includes teacher dashboards, student progress analytics, and custom lesson creation. These institutions often have funding or grants for assistive technology and will pay for a solution that demonstrably improves student outcomes.
+  - **Corporate Training & CSR:** Companies aiming to hire and upskill visually-impaired employees (or retrain workers who lost vision) can license DeepType for professional use. Additionally, corporations could sponsor DeepType deployments as part of their Corporate Social Responsibility programs, effectively *sponsoring free licenses for users* in developing regions (a model similar to how some companies sponsor NVDA development via donations).
+- **Premium Features for Power Users:** While the basic tutor is free, advanced features could be behind a modest subscription. Examples: an **AI “Tutor Plus”** that users can converse with to get career advice or advanced typing drills, cloud sync of personal progress across devices, or the ability to **generate custom practice content** (e.g., “I want to practice typing this specific book or code snippet” – the AI prepares a lesson). These power features cater to enthusiasts or professionals and can justify a monthly fee.
+- **Grants and Partnerships:** Given its mission-driven nature, DeepType will aggressively seek partnerships with nonprofits (e.g., American Foundation for the Blind) and technology grants. These partnerships not only provide funding but also endorsements and user base. For instance, a foundation might fund the development of a new Braille-display integration feature, or a government agency might deploy DeepType in digital literacy initiatives.
+- **Open-Source Community Edition:** A portion of DeepType’s code (especially accessibility utilities) could be open-sourced to encourage community contributions and transparency. This fosters goodwill and potentially free improvements, while the core AI tutoring logic and premium services remain proprietary for monetization. It’s similar to how some companies open-source their SDKs but sell hosted services.
+
+**Monetization with Empathy:** At all times, our strategy ensures that **the end-user who most needs DeepType (a blind learner)** is never left out due to cost. Revenue streams target those who *can* pay (schools, orgs, sponsors) to subsidize those who cannot. This aligns with our brand values (Empathy Labs) and creates a positive feedback loop: more users -> more data -> better AI -> more compelling product -> more paying partners.
+
+### Microcopy & Persuasive Messaging
+DeepType’s voice and tone are **motivational, friendly, and inclusive**. We use microcopy (short pieces of guiding text or audio) to keep users engaged and encouraged:
+
+- Onboarding greeting: *“Welcome to DeepType – where your fingers learn to sing on the keyboard. Let’s unlock your potential, one key at a time!”*
+- When the user makes a mistake: *“Whoops, that didn’t match. No worries – try again, I’m right here with you.”* (No scolding, always supportive.)
+- Success message: *“Great job! You nailed that. Ready for the next challenge?”*
+- Idle encouragement (if user is inactive): *“I’m still here. Whenever you’re ready, press the space bar and we’ll continue your journey.”*
+- Interface labels use empowering language: The “Start” button might say **“Begin Your Journey”**, the help section: **“Need a hand? (Press H)”** spoken as *“You can press H anytime for help – I’ve got tips for you.”*
+
+Persuasive messaging also highlights outcomes: After a progress milestone, DeepType might say, *“You’ve improved your speed by 20%! Imagine writing emails or coding with this speed. You’re on fire!”* This connects the practice to real-life benefits, sustaining motivation.
+
+Throughout our copy, we emphasize **independence, confidence, and fun**. Typing is framed not as a tedious skill, but as *liberation*. *“Your voice in the digital world”* is a recurring theme – since typing enables one to communicate just like sighted peers. Our branding tagline could be: **“DeepType: Touch the keys, touch the world.”** This resonates emotionally and sticks in memory.
+
+### Accessibility-First Product Positioning
+DeepType proudly wears the “accessibility-first” badge. In pitches and materials, we make it clear this is **not an afterthought or add-on**. For example, the product website and pitch deck prominently state: **“Designed for accessibility from scratch – not retrofitted.”** We highlight features like:
+- **Voice Guided Learning:** All lessons are delivered through clear speech, so a user with zero vision can participate without any setup. *“If you can hear, you can learn with DeepType.”*
+- **One-Button Navigation:** The entire UI can be driven with a single key or switch device. This means even users with motor challenges or cognitive overload can navigate step-by-step. (For instance, an on-screen highlight moves through options and the user hits the one button to select – a common approach for switch accessibility.)
+- **High Contrast & Large Print:** For low-vision users, DeepType offers bold, large text and high-contrast color themes out of the box. Screenshots in the pitch deck demonstrate a stark black-and-white interface with >AAA contrast, showing our dedication to usable design for low vision.
+- **Screen-Reader Friendly:** DeepType works harmoniously with screen readers. However, it often won’t need a screen reader’s assistance because it *is* the screen reader for its own interface. (E.g., the app announces “Menu: Start, Settings, Exit – use arrow keys or say ‘Start’” etc.) This dual approach (integrating with or without external screen reader) means flexibility for user preference.
+- **Multimodal Input:** The user can *speak* commands, *type* responses, or even use a *Braille display* in future iterations. DeepType positions itself as *device-agnostic*. If you can press any button or utter a word, you can control it. Such flexibility is rare and a strong selling point in assistive tech.
+
+By positioning accessibility at the forefront, we also capture the interest of allies: educators, parents, occupational therapists, and diversity officers who seek tools that champion inclusive design. DeepType isn’t just a tool; it’s a statement that technology should serve everyone. Our pitch emphasizes this higher purpose, which not only differentiates us but also often sways decision-makers (e.g., a school district choosing between a generic typing software vs. DeepType will see that only DeepType was *built* for their blind students’ needs).
+
+### Pitch Deck Outline (Markdown Slides)
+
+*(Below is a markdown representation of the Pitch Deck for DeepType. Each slide is described with its title and key bullet points.)*
+
+**Slide 1: Title & Vision**  
+**DeepType** by Empathy Labs  
+*The AI-Powered Typing Tutor for All*  
+- *Vision:* Empower every individual to communicate digitally, regardless of vision or ability.  
+- *Tagline:* **Touch the keys, touch the world.**  
+
+**Slide 2: The Problem**  
+- 285 million people have visual impairments, 43 million blind worl ([Bridging the Digital Disability Divide: Determinants of Internet Use among Visually Impaired Individuals in Thailand](https://www.mdpi.com/2673-7272/4/3/43#:~:text=difficulty%20seeing%20well%20at%20a,that%20the%20prevalence%20of%20visual))1-L4】.  
+- Typing = essential skill for education & jobs, yet **no effective way to learn if you can’t see the keyboard.**  
+- Legacy solutions are outdated, hard to access, or extremely expensive. (E.g., 70% unemployment among blind partly due to lack of tech s ([Employment Barriers for the Blind and Visually Impaired — World Services for the Blind](https://www.wsblind.org/blog/2021/6/16/employment-barriers-for-the-blind-and-visually-impaired#:~:text=variety%20of%20reasons%20from%20lack,impaired%20and%20how%20to%20overcome))-L77】.)  
+- *Opportunity:* Huge gap in assistive education – **time to innovate.**
+
+**Slide 3: The Solution**  
+- **DeepType** – an AI tutor that **speaks, listens, and adapts** to the user.  
+- Learn to type through interactive audio lessons, real-time feedback, and personalized practice.  
+- Use it on any device: phone, tablet, computer – no sight required.  
+- Outcome: Blind/low-vision users gain digital independence (sending emails, coding, writing) by mastering typing.
+
+**Slide 4: Why Now? (Market Timing)**  
+- **AI & Accessibility Renaissance:** AI is enabling new assistive tech (e.g., GPT-4 Vision in Be My ([Introducing Be My AI (formerly Virtual Volunteer) for People who are Blind or Have Low Vision, Powered by OpenAI’s GPT-4](https://www.bemyeyes.com/blog/introducing-be-my-eyes-virtual-volunteer#:~:text=a%20dynamic%20new%20image,a%20wide%20variety%20of%20tasks))1-L4】, Seeing AI by Microsoft combining visio ([Seeing AI: New Technology Research to Support the Blind and Visually Impaired Community - Microsoft Accessibility Blog](https://blogs.microsoft.com/accessibility/seeing-ai/#:~:text=Seeing%20AI%20will%20use%20computer,identify%20emotions%20on%20people%E2%80%99s%20faces))L137】). It’s *proven* that AI can make tech more inclusive.  
+- **Tech Convergence:** Speech recognition, text-to-speech, and language models are all advanced *and affordable* in 2025 – enabling our solution.  
+- **Remote Learning Boom:** Post-2020, digital learning tools are mainstream. Accessibility in e-learning is a highlighted need. Institutions seek solutions like DeepType to include all learners.
+
+**Slide 5: Key Features (What makes DeepType special)**  
+- 🗣 **Voice-Guided Lessons:** Friendly voice instructions and feedback. *Hands-free learning.*  
+- 🤖 **Adaptive Learning AI:** Adjusts difficulty in real-time, generates custom exercises on the fly. *No one gets left behind or bored.*  
+- 🎮 **Gamified & Motivating:** Progress badges, fun sound cues, and challenges keep learners engaged. *It’s fun!*  
+- 💻 **Cross-Platform:** Use it via web browser, dedicated desktop app, or on mobile. Consistent experience, cloud-synced progress.  
+- ♿ **Accessibility at Core:** High-contrast UI, ARIA labels, one-switch mode, 
+
+... (truncated for token limit)
+--------------------------------------------------------------------------------

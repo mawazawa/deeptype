@@ -15,7 +15,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSupabase } from '@/hooks/useSupabase';
-import { Spinner } from '@/components/ui/spinner';
+import LoadingState from '@/components/LoadingState';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -54,9 +54,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
+      <LoadingState
+        fullScreen
+        message="Checking authentication..."
+      />
     );
   }
 

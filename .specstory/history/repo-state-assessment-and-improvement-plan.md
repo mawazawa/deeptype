@@ -8499,6 +8499,3986 @@ ok continue and look up anything you are not 100% confident in @Web
 
 _**Assistant**_
 
+Let me analyze the current state of the DeepType Tutor project and propose the next steps with a focus on visual aesthetics, minimalism, and positive user experience.
+
+<response>
+First, let me reiterate your request through the AC/DC-10 framework:
+"Please analyze the current codebase of the DeepType Tutor project, identify any gaps or areas for improvement, and propose the next steps with a particular focus on enhancing the visual aesthetics, user experience, and overall impact on learning outcomes."
+
+Let me check the current state of the project:
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**Assistant**_
+
+
+
+Let me check the src directory structure:
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**Assistant**_
+
+
+
+Let me check the PRD to understand the requirements:
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**Assistant**_
+
+
+
+Based on my analysis, here's what we have and what we need to implement next:
+
+1. ✅ COMPLETED:
+- Authentication system with login/signup/reset
+- Protected routes
+- Database schema with user profiles
+- Basic UI components (Input, Label, etc.)
+- Core styling with Tailwind
+
+2. 🚧 NEXT STEPS (in priority order):
+
+Let's start with the Profile page since it's crucial for user engagement and progress tracking. I'll create a new page component for user profiles.
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Profile Page                                                                        ║
+ * ║ Description: User profile page displaying stats, achievements, and typing progress             ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSupabase } from '@/hooks/useSupabase';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Spinner } from '@/components/ui/spinner';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+interface Profile {
+  id: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  level: number;
+  total_lessons_completed: number;
+  total_practice_time: number;
+  average_wpm: number;
+  average_accuracy: number;
+}
+
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked_at: string;
+}
+
+const Profile: React.FC = () => {
+  const { supabase } = useSupabase();
+
+  // Fetch user profile data
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data as Profile;
+    },
+  });
+
+  // Fetch user achievements
+  const { data: achievements, isLoading: isAchievementsLoading } = useQuery({
+    queryKey: ['achievements'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select(`
+          achievements (
+            id,
+            name,
+            description,
+            icon
+          ),
+          unlocked_at
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      return data.map(({ achievements, unlocked_at }) => ({
+        ...achievements,
+        unlocked_at,
+      })) as Achievement[];
+    },
+  });
+
+  if (isProfileLoading || isAchievementsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Profile not found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Profile Header */}
+      <div className="flex items-center gap-6 mb-8">
+        <Avatar className="w-24 h-24">
+          <AvatarImage src={profile.avatar_url || undefined} />
+          <AvatarFallback>
+            {profile.username?.slice(0, 2).toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-3xl font-bold">{profile.full_name || profile.username}</h1>
+          <p className="text-muted-foreground">Level {profile.level} Typist</p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Average WPM</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile.average_wpm}</div>
+            <Progress value={profile.average_wpm} max={100} className="mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Accuracy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile.average_accuracy}%</div>
+            <Progress value={profile.average_accuracy} max={100} className="mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Lessons Completed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile.total_lessons_completed}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Practice Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.round(profile.total_practice_time / 60)}h
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Achievements */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Achievements</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {achievements?.map((achievement) => (
+              <div
+                key={achievement.id}
+                className="flex flex-col items-center p-4 bg-muted rounded-lg"
+              >
+                <div className="w-12 h-12 flex items-center justify-center bg-background rounded-full mb-2">
+                  {achievement.icon}
+                </div>
+                <h3 className="font-medium text-center mb-1">{achievement.name}</h3>
+                <p className="text-sm text-muted-foreground text-center">
+                  {achievement.description}
+                </p>
+                <Badge variant="secondary" className="mt-2">
+                  {new Date(achievement.unlocked_at).toLocaleDateString()}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Profile;
+```
+
+---
+
+_**Assistant**_
+
+
+
+Now I'll update the App.tsx to include the new Profile route:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: App                                                                                 ║
+ * ║ Description: Main application component with routing and global providers                      ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import TypingTutor from '@/pages/TypingTutor';
+import Auth from '@/pages/Auth';
+import Profile from '@/pages/Profile';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/auth" element={<Auth />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <TypingTutor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch-all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+      <Toaster />
+    </QueryClientProvider>
+  );
+}
+
+export default App;
+```
+
+---
+
+_**Assistant**_
+
+
+
+Let me fix the linter error in the Profile component:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  unlocked_at: string;
+}
+
+interface UserAchievement {
+  achievements: Achievement;
+  unlocked_at: string;
+}
+
+const Profile: React.FC = () => {
+  // ... existing code ...
+
+  // Fetch user achievements
+  const { data: achievements, isLoading: isAchievementsLoading } = useQuery({
+    queryKey: ['achievements'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select(`
+          achievements (
+            id,
+            name,
+            description,
+            icon
+          ),
+          unlocked_at
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      return data.map(({ achievements, unlocked_at }: UserAchievement) => ({
+        ...achievements,
+        unlocked_at,
+      })) as Achievement[];
+    },
+  });
+
+  // ... existing code ...
+```
+
+---
+
+_**Assistant**_
+
+
+
+Let me fix the type error one more time:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+interface UserAchievement {
+  achievements: Achievement;
+  unlocked_at: string;
+}
+
+interface AchievementWithUnlockDate extends Achievement {
+  unlocked_at: string;
+}
+
+const Profile: React.FC = () => {
+  // ... existing code ...
+
+  // Fetch user achievements
+  const { data: achievements, isLoading: isAchievementsLoading } = useQuery({
+    queryKey: ['achievements'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select(`
+          achievements (
+            id,
+            name,
+            description,
+            icon
+          ),
+          unlocked_at
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      return (data as UserAchievement[]).map(({ achievements, unlocked_at }) => ({
+        ...achievements,
+        unlocked_at,
+      })) as AchievementWithUnlockDate[];
+    },
+  });
+
+  // ... existing code ...
+```
+
+---
+
+_**Assistant**_
+
+
+
+Let me try one final fix for the type error:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+interface SupabaseUserAchievement {
+  achievements: Achievement;
+  unlocked_at: string;
+}
+
+interface AchievementWithUnlockDate extends Achievement {
+  unlocked_at: string;
+}
+
+const Profile: React.FC = () => {
+  // ... existing code ...
+
+  // Fetch user achievements
+  const { data: achievements, isLoading: isAchievementsLoading } = useQuery({
+    queryKey: ['achievements'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('user_achievements')
+        .select(`
+          achievements (
+            id,
+            name,
+            description,
+            icon
+          ),
+          unlocked_at
+        `)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      // Type assertion for the raw response data
+      const userAchievements = data as unknown as SupabaseUserAchievement[];
+      
+      // Map to our desired format
+      return userAchievements.map(({ achievements, unlocked_at }) => ({
+        ...achievements,
+        unlocked_at,
+      }));
+    },
+  });
+
+  // ... existing code ...
+```
+
+---
+
+_**Assistant**_
+
+
+
+Now that we have the Profile page set up, let's create a navigation component to allow users to move between pages:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Navigation                                                                          ║
+ * ║ Description: Main navigation bar with user menu and page links                                ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useSupabase } from '@/hooks/useSupabase';
+import { useQuery } from '@tanstack/react-query';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
+
+const Navigation: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { supabase } = useSupabase();
+  const { toast } = useToast();
+
+  // Fetch user profile
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, avatar_url, full_name')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      toast({
+        title: 'Signed out successfully',
+        description: 'See you next time!',
+      });
+      
+      navigate('/auth');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to sign out. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
+        <div className="mr-4 hidden md:flex">
+          <Link to="/" className="mr-6 flex items-center space-x-2">
+            <span className="hidden font-bold sm:inline-block">
+              DeepType
+            </span>
+          </Link>
+          <div className="flex items-center space-x-6 text-sm font-medium">
+            <Link
+              to="/"
+              className={location.pathname === '/' ? 'text-foreground' : 'text-muted-foreground'}
+            >
+              Practice
+            </Link>
+            <Link
+              to="/profile"
+              className={location.pathname === '/profile' ? 'text-foreground' : 'text-muted-foreground'}
+            >
+              Profile
+            </Link>
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <div className="w-full flex-1 md:w-auto md:flex-none">
+            {/* Add search or other controls here */}
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="relative h-8 w-8 rounded-full"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={profile?.avatar_url || undefined} />
+                  <AvatarFallback>
+                    {profile?.username?.slice(0, 2).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>
+                {profile?.full_name || profile?.username || 'User'}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/profile">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
+                onClick={handleSignOut}
+              >
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navigation;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Now let's update the App.tsx to include the Navigation component:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: App                                                                                 ║
+ * ║ Description: Main application component with routing and global providers                      ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import TypingTutor from '@/pages/TypingTutor';
+import Auth from '@/pages/Auth';
+import Profile from '@/pages/Profile';
+import Navigation from '@/components/layout/Navigation';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000, // 1 minute
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <div className="min-h-screen bg-background">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/auth" element={<Auth />} />
+
+            {/* Protected Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Navigation />
+                    <TypingTutor />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Navigation />
+                    <Profile />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </Router>
+      <Toaster />
+    </QueryClientProvider>
+  );
+}
+
+export default App;
+```
+
+---
+
+_**Assistant**_
+
+
+
+Great! I've implemented the following components:
+
+1. Profile Page (`src/pages/Profile.tsx`)
+   - Displays user stats (WPM, accuracy, lessons completed)
+   - Shows achievements
+   - Uses Shadcn UI components for a clean, modern look
+
+2. Navigation (`src/components/layout/Navigation.tsx`)
+   - Top navigation bar with links to different pages
+   - User menu with profile access and sign out
+   - Responsive design with mobile support
+
+3. Updated App Layout (`src/App.tsx`)
+   - Added navigation to protected routes
+   - Improved overall layout structure
+   - Added background styling
+
+Next steps could be:
+1. Implement the achievements system
+2. Create the multiplayer feature
+3. Add a leaderboard
+4. Enhance the typing tutor with AI feedback
+
+Would you like me to continue with any of these features?
+
+---
+
+_**User**_
+
+can you do a git commit and then continue @Web 
+
+---
+
+_**Assistant**_
+
+I'll help you commit the recent changes and then continue with the development.
+
+<response>
+Let me rephrase your request through the AC/DC-10 framework:
+"Please help me create a well-structured git commit for the recent changes to the DeepType Tutor project, focusing on the profile page and navigation components, and then proceed with implementing additional features that enhance the user experience and visual aesthetics."
+
+Let me help you commit the changes:
+
+---
+
+_**Assistant**_
+
+```
+git commit -m "feat(profile): add user profile page and navigation
+
+- Add Profile page with stats and achievements display
+- Create Navigation component with user menu
+- Implement protected routes with authentication
+- Add responsive layout and modern UI components
+- Integrate with Supabase for user data"
+```
+
+---
+
+_**Assistant**_
+
+
+
+I apologize for the formatting error. Let me fix that:
+
+---
+
+_**Assistant**_
+
+```
+git commit -m "feat(profile): add user profile page and navigation - Add Profile page with stats and achievements display - Create Navigation component with user menu - Implement protected routes with authentication - Add responsive layout and modern UI components - Integrate with Supabase for user data"
+```
+
+---
+
+_**Assistant**_
+
+
+
+I see we need to add the files first. Let me do that:
+
+---
+
+_**Assistant**_
+
+```
+git add .
+```
+
+---
+
+_**Assistant**_
+
+
+
+Now let's commit the changes:
+
+---
+
+_**Assistant**_
+
+```
+git commit -m "feat(profile): add user profile page and navigation - Add Profile page with stats and achievements display - Create Navigation component with user menu - Implement protected routes with authentication - Add responsive layout and modern UI components - Integrate with Supabase for user data"
+```
+
+---
+
+_**Assistant**_
+
+
+
+Great! The changes have been committed successfully. Now let's continue with the development. Looking at our current state, I think implementing the achievements system would be a great next step since we already have the UI for it in the Profile page.
+
+Let me create an achievements service to handle the logic:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Module: Achievements                                                                           ║
+ * ║ Description: Achievement system for tracking and unlocking user accomplishments                ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import { SupabaseClient } from '@supabase/supabase-js';
+import { useToast } from '@/components/ui/use-toast';
+import { Trophy, Zap, Target, Clock, Star, Award, Crown, Medal } from 'lucide-react';
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  criteria: AchievementCriteria;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+}
+
+export interface AchievementCriteria {
+  type: 'wpm' | 'accuracy' | 'lessons' | 'streak' | 'practice_time' | 'perfect_score';
+  threshold: number;
+  comparison: 'gte' | 'eq' | 'lte';
+}
+
+export interface AchievementProgress {
+  achievementId: string;
+  progress: number;
+  isUnlocked: boolean;
+  unlockedAt?: string;
+}
+
+// Define achievements with their criteria
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'speed_demon',
+    name: 'Speed Demon',
+    description: 'Reach 100 WPM in a typing session',
+    icon: 'Zap',
+    criteria: {
+      type: 'wpm',
+      threshold: 100,
+      comparison: 'gte'
+    },
+    rarity: 'epic'
+  },
+  {
+    id: 'perfect_accuracy',
+    name: 'Perfectionist',
+    description: 'Complete a lesson with 100% accuracy',
+    icon: 'Target',
+    criteria: {
+      type: 'accuracy',
+      threshold: 100,
+      comparison: 'eq'
+    },
+    rarity: 'rare'
+  },
+  {
+    id: 'practice_master',
+    name: 'Practice Master',
+    description: 'Complete 50 typing lessons',
+    icon: 'Trophy',
+    criteria: {
+      type: 'lessons',
+      threshold: 50,
+      comparison: 'gte'
+    },
+    rarity: 'common'
+  },
+  {
+    id: 'consistency_king',
+    name: 'Consistency King',
+    description: 'Maintain a 10-day practice streak',
+    icon: 'Crown',
+    criteria: {
+      type: 'streak',
+      threshold: 10,
+      comparison: 'gte'
+    },
+    rarity: 'rare'
+  },
+  {
+    id: 'dedication',
+    name: 'Dedication',
+    description: 'Practice for a total of 24 hours',
+    icon: 'Clock',
+    criteria: {
+      type: 'practice_time',
+      threshold: 24,
+      comparison: 'gte'
+    },
+    rarity: 'epic'
+  },
+  {
+    id: 'flawless_victory',
+    name: 'Flawless Victory',
+    description: 'Complete an advanced lesson with 100% accuracy and 100+ WPM',
+    icon: 'Star',
+    criteria: {
+      type: 'perfect_score',
+      threshold: 1,
+      comparison: 'gte'
+    },
+    rarity: 'legendary'
+  }
+];
+
+export class AchievementManager {
+  private supabase: SupabaseClient;
+  private userId: string;
+  private toast: ReturnType<typeof useToast>['toast'];
+
+  constructor(supabase: SupabaseClient, userId: string, toast: ReturnType<typeof useToast>['toast']) {
+    this.supabase = supabase;
+    this.userId = userId;
+    this.toast = toast;
+  }
+
+  private getIconComponent(iconName: string) {
+    const icons = {
+      Zap,
+      Target,
+      Trophy,
+      Clock,
+      Star,
+      Award,
+      Crown,
+      Medal
+    };
+    return icons[iconName as keyof typeof icons] || Trophy;
+  }
+
+  private async checkAchievementCriteria(
+    criteria: AchievementCriteria,
+    stats: {
+      wpm: number;
+      accuracy: number;
+      lessons: number;
+      streak: number;
+      practiceTime: number;
+      isPerfectScore: boolean;
+    }
+  ): Promise<boolean> {
+    const value = stats[criteria.type as keyof typeof stats];
+    
+    switch (criteria.comparison) {
+      case 'gte':
+        return value >= criteria.threshold;
+      case 'eq':
+        return value === criteria.threshold;
+      case 'lte':
+        return value <= criteria.threshold;
+      default:
+        return false;
+    }
+  }
+
+  public async checkAndUnlockAchievements(stats: {
+    wpm: number;
+    accuracy: number;
+    lessons: number;
+    streak: number;
+    practiceTime: number;
+    isPerfectScore: boolean;
+  }): Promise<void> {
+    try {
+      // Get already unlocked achievements
+      const { data: unlockedAchievements } = await this.supabase
+        .from('user_achievements')
+        .select('achievement_id')
+        .eq('user_id', this.userId);
+
+      const unlockedIds = new Set(unlockedAchievements?.map(ua => ua.achievement_id) || []);
+
+      // Check each achievement
+      for (const achievement of ACHIEVEMENTS) {
+        if (unlockedIds.has(achievement.id)) continue;
+
+        const isUnlocked = await this.checkAchievementCriteria(achievement.criteria, stats);
+        if (isUnlocked) {
+          // Unlock the achievement
+          const { error } = await this.supabase
+            .from('user_achievements')
+            .insert({
+              user_id: this.userId,
+              achievement_id: achievement.id,
+              unlocked_at: new Date().toISOString()
+            });
+
+          if (error) throw error;
+
+          // Show notification
+          const IconComponent = this.getIconComponent(achievement.icon);
+          this.toast({
+            title: '🏆 Achievement Unlocked!',
+            description: (
+              <div className="flex items-center space-x-2">
+                <IconComponent className="w-5 h-5" />
+                <div>
+                  <p className="font-medium">{achievement.name}</p>
+                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                </div>
+              </div>
+            ),
+            duration: 5000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error);
+      this.toast({
+        title: 'Error',
+        description: 'Failed to check achievements',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  public async getProgress(): Promise<AchievementProgress[]> {
+    try {
+      // Get user stats
+      const { data: stats, error: statsError } = await this.supabase
+        .from('profiles')
+        .select('average_wpm, average_accuracy, total_lessons_completed, total_practice_time')
+        .eq('id', this.userId)
+        .single();
+
+      if (statsError) throw statsError;
+
+      // Get unlocked achievements
+      const { data: unlockedAchievements, error: achievementsError } = await this.supabase
+        .from('user_achievements')
+        .select('achievement_id, unlocked_at')
+        .eq('user_id', this.userId);
+
+      if (achievementsError) throw achievementsError;
+
+      const unlockedMap = new Map(
+        unlockedAchievements?.map(ua => [ua.achievement_id, ua.unlocked_at]) || []
+      );
+
+      // Calculate progress for each achievement
+      return ACHIEVEMENTS.map(achievement => {
+        const unlockedAt = unlockedMap.get(achievement.id);
+        let progress = 0;
+
+        switch (achievement.criteria.type) {
+          case 'wpm':
+            progress = (stats.average_wpm / achievement.criteria.threshold) * 100;
+            break;
+          case 'accuracy':
+            progress = (stats.average_accuracy / achievement.criteria.threshold) * 100;
+            break;
+          case 'lessons':
+            progress = (stats.total_lessons_completed / achievement.criteria.threshold) * 100;
+            break;
+          case 'practice_time':
+            progress = ((stats.total_practice_time / 60) / achievement.criteria.threshold) * 100;
+            break;
+          default:
+            progress = unlockedAt ? 100 : 0;
+        }
+
+        return {
+          achievementId: achievement.id,
+          progress: Math.min(Math.round(progress), 100),
+          isUnlocked: !!unlockedAt,
+          unlockedAt
+        };
+      });
+    } catch (error) {
+      console.error('Error getting achievement progress:', error);
+      throw error;
+    }
+  }
+}
+
+// Export a function to create the achievement manager
+export function createAchievementManager(
+  supabase: SupabaseClient,
+  userId: string,
+  toast: ReturnType<typeof useToast>['toast']
+): AchievementManager {
+  return new AchievementManager(supabase, userId, toast);
+}
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Let me fix the JSX type error in the toast description:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+// Create a separate component for the achievement notification
+const AchievementNotification: React.FC<{
+  name: string;
+  description: string;
+  IconComponent: React.ComponentType<{ className?: string }>;
+}> = ({ name, description, IconComponent }) => (
+  <div className="flex items-center space-x-2">
+    <IconComponent className="w-5 h-5" />
+    <div>
+      <p className="font-medium">{name}</p>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+  </div>
+);
+
+export class AchievementManager {
+  // ... existing code ...
+
+  public async checkAndUnlockAchievements(stats: {
+    wpm: number;
+    accuracy: number;
+    lessons: number;
+    streak: number;
+    practiceTime: number;
+    isPerfectScore: boolean;
+  }): Promise<void> {
+    try {
+      // Get already unlocked achievements
+      const { data: unlockedAchievements } = await this.supabase
+        .from('user_achievements')
+        .select('achievement_id')
+        .eq('user_id', this.userId);
+
+      const unlockedIds = new Set(unlockedAchievements?.map(ua => ua.achievement_id) || []);
+
+      // Check each achievement
+      for (const achievement of ACHIEVEMENTS) {
+        if (unlockedIds.has(achievement.id)) continue;
+
+        const isUnlocked = await this.checkAchievementCriteria(achievement.criteria, stats);
+        if (isUnlocked) {
+          // Unlock the achievement
+          const { error } = await this.supabase
+            .from('user_achievements')
+            .insert({
+              user_id: this.userId,
+              achievement_id: achievement.id,
+              unlocked_at: new Date().toISOString()
+            });
+
+          if (error) throw error;
+
+          // Show notification
+          const IconComponent = this.getIconComponent(achievement.icon);
+          this.toast({
+            title: '🏆 Achievement Unlocked!',
+            description: `${achievement.name} - ${achievement.description}`,
+            duration: 5000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error);
+      this.toast({
+        title: 'Error',
+        description: 'Failed to check achievements',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  // ... rest of the code ...
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Let me try one more fix by removing the React component and using a simpler notification:
+
+---
+
+_**Assistant**_
+
+```
+undefined
+```
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**User**_
+
+dont simplify by removing the reatc component, go all out. just figure out a way to get the high-end implementation working @Web 
+
+---
+
+_**Assistant**_
+
+I'll help you create a more sophisticated implementation that properly handles React components in TypeScript. Let's create a separate achievements UI components directory:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: AchievementNotification                                                             ║
+ * ║ Description: Toast notification component for unlocked achievements                            ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+
+interface AchievementNotificationProps {
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+}
+
+const rarityColors = {
+  common: 'bg-slate-500',
+  rare: 'bg-blue-500',
+  epic: 'bg-purple-500',
+  legendary: 'bg-yellow-500'
+};
+
+const AchievementNotification: React.FC<AchievementNotificationProps> = ({
+  name,
+  description,
+  icon: Icon,
+  rarity
+}) => {
+  return (
+    <div className="flex items-center space-x-3 p-2">
+      <div className={cn(
+        "w-12 h-12 rounded-full flex items-center justify-center",
+        "bg-gradient-to-br from-background/50 to-background",
+        "border-2",
+        {
+          'border-slate-500': rarity === 'common',
+          'border-blue-500': rarity === 'rare',
+          'border-purple-500': rarity === 'epic',
+          'border-yellow-500': rarity === 'legendary',
+        }
+      )}>
+        <Icon className={cn(
+          "w-6 h-6",
+          {
+            'text-slate-400': rarity === 'common',
+            'text-blue-400': rarity === 'rare',
+            'text-purple-400': rarity === 'epic',
+            'text-yellow-400': rarity === 'legendary',
+          }
+        )} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h4 className="font-semibold text-sm truncate">{name}</h4>
+          <Badge variant="secondary" className={cn(
+            "text-[10px] px-1.5 py-0.5",
+            rarityColors[rarity]
+          )}>
+            {rarity.toUpperCase()}
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground truncate">{description}</p>
+      </div>
+    </div>
+  );
+};
+
+export default AchievementNotification;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Now let's update the achievements service to use this component:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Module: Achievements                                                                           ║
+ * ║ Description: Achievement system for tracking and unlocking user accomplishments                ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import { SupabaseClient } from '@supabase/supabase-js';
+import { useToast } from '@/components/ui/use-toast';
+import { LucideIcon, Trophy, Zap, Target, Clock, Star, Award, Crown, Medal } from 'lucide-react';
+import { createElement } from 'react';
+import AchievementNotification from '@/components/achievements/AchievementNotification';
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: keyof typeof ACHIEVEMENT_ICONS;
+  criteria: AchievementCriteria;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+}
+
+export interface AchievementCriteria {
+  type: 'wpm' | 'accuracy' | 'lessons' | 'streak' | 'practice_time' | 'perfect_score';
+  threshold: number;
+  comparison: 'gte' | 'eq' | 'lte';
+}
+
+export interface AchievementProgress {
+  achievementId: string;
+  progress: number;
+  isUnlocked: boolean;
+  unlockedAt?: string;
+}
+
+export const ACHIEVEMENT_ICONS = {
+  Zap,
+  Target,
+  Trophy,
+  Clock,
+  Star,
+  Award,
+  Crown,
+  Medal
+} as const;
+
+// Define achievements with their criteria
+export const ACHIEVEMENTS: Achievement[] = [
+  {
+    id: 'speed_demon',
+    name: 'Speed Demon',
+    description: 'Reach 100 WPM in a typing session',
+    icon: 'Zap',
+    criteria: {
+      type: 'wpm',
+      threshold: 100,
+      comparison: 'gte'
+    },
+    rarity: 'epic'
+  },
+  {
+    id: 'perfect_accuracy',
+    name: 'Perfectionist',
+    description: 'Complete a lesson with 100% accuracy',
+    icon: 'Target',
+    criteria: {
+      type: 'accuracy',
+      threshold: 100,
+      comparison: 'eq'
+    },
+    rarity: 'rare'
+  },
+  {
+    id: 'practice_master',
+    name: 'Practice Master',
+    description: 'Complete 50 typing lessons',
+    icon: 'Trophy',
+    criteria: {
+      type: 'lessons',
+      threshold: 50,
+      comparison: 'gte'
+    },
+    rarity: 'common'
+  },
+  {
+    id: 'consistency_king',
+    name: 'Consistency King',
+    description: 'Maintain a 10-day practice streak',
+    icon: 'Crown',
+    criteria: {
+      type: 'streak',
+      threshold: 10,
+      comparison: 'gte'
+    },
+    rarity: 'rare'
+  },
+  {
+    id: 'dedication',
+    name: 'Dedication',
+    description: 'Practice for a total of 24 hours',
+    icon: 'Clock',
+    criteria: {
+      type: 'practice_time',
+      threshold: 24,
+      comparison: 'gte'
+    },
+    rarity: 'epic'
+  },
+  {
+    id: 'flawless_victory',
+    name: 'Flawless Victory',
+    description: 'Complete an advanced lesson with 100% accuracy and 100+ WPM',
+    icon: 'Star',
+    criteria: {
+      type: 'perfect_score',
+      threshold: 1,
+      comparison: 'gte'
+    },
+    rarity: 'legendary'
+  }
+];
+
+export class AchievementManager {
+  private supabase: SupabaseClient;
+  private userId: string;
+  private toast: ReturnType<typeof useToast>['toast'];
+
+  constructor(supabase: SupabaseClient, userId: string, toast: ReturnType<typeof useToast>['toast']) {
+    this.supabase = supabase;
+    this.userId = userId;
+    this.toast = toast;
+  }
+
+  private getIconComponent(iconName: keyof typeof ACHIEVEMENT_ICONS): LucideIcon {
+    return ACHIEVEMENT_ICONS[iconName];
+  }
+
+  private async checkAchievementCriteria(
+    criteria: AchievementCriteria,
+    stats: {
+      wpm: number;
+      accuracy: number;
+      lessons: number;
+      streak: number;
+      practiceTime: number;
+      isPerfectScore: boolean;
+    }
+  ): Promise<boolean> {
+    const value = criteria.type === 'perfect_score' 
+      ? stats.isPerfectScore 
+      : stats[criteria.type === 'practice_time' ? 'practiceTime' : criteria.type];
+
+    if (typeof value === 'boolean') {
+      return value;
+    }
+
+    switch (criteria.comparison) {
+      case 'gte':
+        return value >= criteria.threshold;
+      case 'eq':
+        return value === criteria.threshold;
+      case 'lte':
+        return value <= criteria.threshold;
+      default:
+        return false;
+    }
+  }
+
+  public async checkAndUnlockAchievements(stats: {
+    wpm: number;
+    accuracy: number;
+    lessons: number;
+    streak: number;
+    practiceTime: number;
+    isPerfectScore: boolean;
+  }): Promise<void> {
+    try {
+      // Get already unlocked achievements
+      const { data: unlockedAchievements } = await this.supabase
+        .from('user_achievements')
+        .select('achievement_id')
+        .eq('user_id', this.userId);
+
+      const unlockedIds = new Set(unlockedAchievements?.map(ua => ua.achievement_id) || []);
+
+      // Check each achievement
+      for (const achievement of ACHIEVEMENTS) {
+        if (unlockedIds.has(achievement.id)) continue;
+
+        const isUnlocked = await this.checkAchievementCriteria(achievement.criteria, stats);
+        if (isUnlocked) {
+          // Unlock the achievement
+          const { error } = await this.supabase
+            .from('user_achievements')
+            .insert({
+              user_id: this.userId,
+              achievement_id: achievement.id,
+              unlocked_at: new Date().toISOString()
+            });
+
+          if (error) throw error;
+
+          // Show notification
+          const IconComponent = this.getIconComponent(achievement.icon);
+          this.toast({
+            title: '🏆 Achievement Unlocked!',
+            description: createElement(AchievementNotification, {
+              name: achievement.name,
+              description: achievement.description,
+              icon: IconComponent,
+              rarity: achievement.rarity
+            }),
+            duration: 5000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error);
+      this.toast({
+        title: 'Error',
+        description: 'Failed to check achievements',
+        variant: 'destructive',
+      });
+    }
+  }
+
+  public async getProgress(): Promise<AchievementProgress[]> {
+    try {
+      // Get user stats
+      const { data: stats, error: statsError } = await this.supabase
+        .from('profiles')
+        .select('average_wpm, average_accuracy, total_lessons_completed, total_practice_time')
+        .eq('id', this.userId)
+        .single();
+
+      if (statsError) throw statsError;
+
+      // Get unlocked achievements
+      const { data: unlockedAchievements, error: achievementsError } = await this.supabase
+        .from('user_achievements')
+        .select('achievement_id, unlocked_at')
+        .eq('user_id', this.userId);
+
+      if (achievementsError) throw achievementsError;
+
+      const unlockedMap = new Map(
+        unlockedAchievements?.map(ua => [ua.achievement_id, ua.unlocked_at]) || []
+      );
+
+      // Calculate progress for each achievement
+      return ACHIEVEMENTS.map(achievement => {
+        const unlockedAt = unlockedMap.get(achievement.id);
+        let progress = 0;
+
+        switch (achievement.criteria.type) {
+          case 'wpm':
+            progress = (stats.average_wpm / achievement.criteria.threshold) * 100;
+            break;
+          case 'accuracy':
+            progress = (stats.average_accuracy / achievement.criteria.threshold) * 100;
+            break;
+          case 'lessons':
+            progress = (stats.total_lessons_completed / achievement.criteria.threshold) * 100;
+            break;
+          case 'practice_time':
+            progress = ((stats.total_practice_time / 60) / achievement.criteria.threshold) * 100;
+            break;
+          default:
+            progress = unlockedAt ? 100 : 0;
+        }
+
+        return {
+          achievementId: achievement.id,
+          progress: Math.min(Math.round(progress), 100),
+          isUnlocked: !!unlockedAt,
+          unlockedAt
+        };
+      });
+    } catch (error) {
+      console.error('Error getting achievement progress:', error);
+      throw error;
+    }
+  }
+}
+
+// Export a function to create the achievement manager
+export function createAchievementManager(
+  supabase: SupabaseClient,
+  userId: string,
+  toast: ReturnType<typeof useToast>['toast']
+): AchievementManager {
+  return new AchievementManager(supabase, userId, toast);
+}
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Now let's create a hook to use the achievement system in our components:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Module: Achievement Hook                                                                       ║
+ * ║ Description: React hook for managing achievements and progress                                 ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import { useEffect, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSupabase } from './useSupabase';
+import { useToast } from '@/components/ui/use-toast';
+import { createAchievementManager, type AchievementProgress } from '@/lib/achievements';
+
+interface UseAchievementsReturn {
+  achievements: AchievementProgress[];
+  isLoading: boolean;
+  error: Error | null;
+  checkAchievements: (stats: {
+    wpm: number;
+    accuracy: number;
+    lessons: number;
+    streak: number;
+    practiceTime: number;
+    isPerfectScore: boolean;
+  }) => Promise<void>;
+}
+
+export function useAchievements(): UseAchievementsReturn {
+  const { supabase } = useSupabase();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Get current user
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+      return user;
+    },
+  });
+
+  // Create achievement manager instance
+  const achievementManager = useMemo(() => {
+    if (!user) return null;
+    return createAchievementManager(supabase, user.id, toast);
+  }, [user, supabase, toast]);
+
+  // Fetch achievements progress
+  const { data: achievements, isLoading, error } = useQuery({
+    queryKey: ['achievements', user?.id],
+    queryFn: async () => {
+      if (!achievementManager) throw new Error('Achievement manager not initialized');
+      return achievementManager.getProgress();
+    },
+    enabled: !!achievementManager,
+  });
+
+  // Function to check achievements
+  const checkAchievements = async (stats: {
+    wpm: number;
+    accuracy: number;
+    lessons: number;
+    streak: number;
+    practiceTime: number;
+    isPerfectScore: boolean;
+  }) => {
+    if (!achievementManager) {
+      console.error('Achievement manager not initialized');
+      return;
+    }
+
+    await achievementManager.checkAndUnlockAchievements(stats);
+    // Invalidate achievements query to refresh the data
+    queryClient.invalidateQueries({ queryKey: ['achievements', user?.id] });
+  };
+
+  // Log achievement system initialization
+  useEffect(() => {
+    if (achievementManager) {
+      console.info('Achievement system initialized for user:', user?.id);
+    }
+  }, [achievementManager, user?.id]);
+
+  return {
+    achievements: achievements || [],
+    isLoading,
+    error: error as Error | null,
+    checkAchievements,
+  };
+}
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Now let's create a component to display achievements in the profile page:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Achievement Grid                                                                    ║
+ * ║ Description: Grid display of achievements with progress and unlock status                      ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { ACHIEVEMENTS, ACHIEVEMENT_ICONS, type AchievementProgress } from '@/lib/achievements';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+interface AchievementGridProps {
+  progress: AchievementProgress[];
+  className?: string;
+}
+
+const rarityColors = {
+  common: {
+    bg: 'bg-slate-500/10',
+    border: 'border-slate-500/20',
+    text: 'text-slate-400',
+    badge: 'bg-slate-500',
+  },
+  rare: {
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
+    text: 'text-blue-400',
+    badge: 'bg-blue-500',
+  },
+  epic: {
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20',
+    text: 'text-purple-400',
+    badge: 'bg-purple-500',
+  },
+  legendary: {
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/20',
+    text: 'text-yellow-400',
+    badge: 'bg-yellow-500',
+  },
+};
+
+const AchievementGrid: React.FC<AchievementGridProps> = ({ progress, className }) => {
+  // Create a map of achievement progress for easy lookup
+  const progressMap = new Map(progress.map(p => [p.achievementId, p]));
+
+  return (
+    <div className={cn("grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4", className)}>
+      {ACHIEVEMENTS.map(achievement => {
+        const achievementProgress = progressMap.get(achievement.id);
+        const isUnlocked = achievementProgress?.isUnlocked || false;
+        const progressValue = achievementProgress?.progress || 0;
+        const IconComponent = ACHIEVEMENT_ICONS[achievement.icon];
+        const colors = rarityColors[achievement.rarity];
+
+        return (
+          <TooltipProvider key={achievement.id}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn(
+                    "relative p-4 rounded-lg border-2 transition-all duration-300",
+                    colors.border,
+                    colors.bg,
+                    isUnlocked ? "opacity-100" : "opacity-60 hover:opacity-80",
+                    "group cursor-help"
+                  )}
+                >
+                  {/* Icon */}
+                  <div className="flex justify-center mb-3">
+                    <div className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center",
+                      "bg-gradient-to-br from-background/50 to-background",
+                      "transition-transform duration-300 group-hover:scale-110"
+                    )}>
+                      <IconComponent className={cn(
+                        "w-6 h-6 transition-all duration-300",
+                        colors.text,
+                        isUnlocked ? "opacity-100" : "opacity-50 group-hover:opacity-75"
+                      )} />
+                    </div>
+                  </div>
+
+                  {/* Title and Rarity */}
+                  <div className="text-center mb-2">
+                    <h3 className="font-semibold text-sm mb-1 truncate">
+                      {achievement.name}
+                    </h3>
+                    <Badge variant="secondary" className={cn(
+                      "text-[10px] px-1.5 py-0.5",
+                      colors.badge
+                    )}>
+                      {achievement.rarity.toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <Progress
+                    value={progressValue}
+                    className="h-1 mt-2"
+                  />
+
+                  {/* Unlock Status */}
+                  {isUnlocked && (
+                    <div className="absolute -top-2 -right-2">
+                      <Badge className="bg-green-500">
+                        ✓
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="text-sm">
+                  <p className="font-medium mb-1">{achievement.name}</p>
+                  <p className="text-muted-foreground">{achievement.description}</p>
+                  {achievementProgress?.unlockedAt && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Unlocked on {new Date(achievementProgress.unlockedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                  {!isUnlocked && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Progress: {progressValue}%
+                    </p>
+                  )}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      })}
+    </div>
+  );
+};
+
+export default AchievementGrid;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Now let's update the Profile page to use the new achievement grid:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+import { useAchievements } from '@/hooks/useAchievements';
+import AchievementGrid from '@/components/achievements/AchievementGrid';
+
+// ... rest of imports ...
+
+const Profile: React.FC = () => {
+  const { supabase } = useSupabase();
+  const { achievements, isLoading: isAchievementsLoading } = useAchievements();
+
+  // Fetch user profile data
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data as Profile;
+    },
+  });
+
+  if (isProfileLoading || isAchievementsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Profile not found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Profile Header */}
+      <div className="flex items-center gap-6 mb-8">
+        <Avatar className="w-24 h-24">
+          <AvatarImage src={profile.avatar_url || undefined} />
+          <AvatarFallback>
+            {profile.username?.slice(0, 2).toUpperCase() || 'U'}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-3xl font-bold">{profile.full_name || profile.username}</h1>
+          <p className="text-muted-foreground">Level {profile.level} Typist</p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Average WPM</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile.average_wpm}</div>
+            <Progress value={profile.average_wpm} max={100} className="mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Accuracy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile.average_accuracy}%</div>
+            <Progress value={profile.average_accuracy} max={100} className="mt-2" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Lessons Completed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile.total_lessons_completed}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Practice Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.round(profile.total_practice_time / 60)}h
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Achievements */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Achievements</CardTitle>
+          <CardDescription>
+            Track your progress and unlock achievements as you improve
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AchievementGrid progress={achievements} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Profile;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Now let's create the tooltip component that we're using in the AchievementGrid:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Tooltip                                                                             ║
+ * ║ Description: Tooltip component with smooth animations and positioning                          ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import * as React from "react";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+
+import { cn } from "@/lib/utils";
+
+const TooltipProvider = TooltipPrimitive.Provider;
+
+const Tooltip = TooltipPrimitive.Root;
+
+const TooltipTrigger = TooltipPrimitive.Trigger;
+
+const TooltipContent = React.forwardRef<
+  React.ElementRef<typeof TooltipPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <TooltipPrimitive.Content
+    ref={ref}
+    sideOffset={sideOffset}
+    className={cn(
+      "z-50 overflow-hidden rounded-md bg-primary px-3 py-1.5 text-xs text-primary-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      className
+    )}
+    {...props}
+  />
+));
+TooltipContent.displayName = TooltipPrimitive.Content.displayName;
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Great! I've implemented a complete achievement system with:
+
+1. Achievement Service (`src/lib/achievements.ts`)
+   - Manages achievement unlocking and progress tracking
+   - Handles different achievement types and criteria
+   - Provides real-time notifications
+
+2. Achievement Hook (`src/hooks/useAchievements.ts`)
+   - React hook for easy integration with components
+   - Handles data fetching and caching
+   - Provides loading and error states
+
+3. Achievement UI Components
+   - `AchievementNotification.tsx` for toast notifications
+   - `AchievementGrid.tsx` for displaying achievements
+   - Beautiful animations and visual feedback
+
+4. Profile Integration
+   - Updated Profile page to show achievements
+   - Added progress tracking
+   - Responsive grid layout
+
+The system is now ready to use! Would you like me to:
+1. Add more achievements
+2. Implement the multiplayer feature
+3. Create a leaderboard
+4. Add more profile customization options
+
+Let me know which direction you'd like to go next!
+
+---
+
+_**User**_
+
+leaderboard @Web and maybe refactor and do a thorough traversing of the codebase to look for any bugs and start to get ready for production deployment. 
+
+---
+
+_**Assistant**_
+
+I'll help you create a leaderboard and do a thorough code review. Let's start by creating the leaderboard component and then do a comprehensive codebase analysis.
+
+First, let's create the leaderboard component:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: LeaderboardTable                                                                    ║
+ * ║ Description: Displays user rankings and stats with beautiful animations                        ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useSupabase } from '@/hooks/useSupabase';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Trophy, Medal, Award } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+interface LeaderboardEntry {
+  id: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  average_wpm: number;
+  average_accuracy: number;
+  total_lessons_completed: number;
+  level: number;
+  achievements_count: number;
+  rank: number;
+}
+
+interface LeaderboardTableProps {
+  className?: string;
+  limit?: number;
+}
+
+const rankColors = {
+  1: 'text-yellow-500',
+  2: 'text-slate-400',
+  3: 'text-amber-600',
+};
+
+const rankIcons = {
+  1: Trophy,
+  2: Medal,
+  3: Award,
+};
+
+const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
+  className,
+  limit = 100
+}) => {
+  const { supabase } = useSupabase();
+
+  // Get current user for highlighting
+  const { data: currentUser } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
+  // Fetch leaderboard data
+  const { data: leaderboard, isLoading } = useQuery({
+    queryKey: ['leaderboard'],
+    queryFn: async () => {
+      // First get achievement counts for each user
+      const { data: achievementCounts } = await supabase
+        .from('user_achievements')
+        .select('user_id, count', { count: 'exact' })
+        .group('user_id');
+
+      // Then get user profiles with stats
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('average_wpm', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      // Combine data and add rankings
+      const achievementMap = new Map(
+        achievementCounts?.map(({ user_id, count }) => [user_id, count]) || []
+      );
+
+      return profiles.map((profile, index) => ({
+        ...profile,
+        achievements_count: achievementMap.get(profile.id) || 0,
+        rank: index + 1,
+      })) as LeaderboardEntry[];
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-64 flex items-center justify-center">
+        <div className="animate-pulse flex space-x-4">
+          <div className="h-10 w-10 bg-primary/20 rounded-full" />
+          <div className="space-y-3">
+            <div className="h-4 w-[250px] bg-primary/20 rounded" />
+            <div className="h-4 w-[200px] bg-primary/20 rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("rounded-lg border bg-card", className)}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[100px]">Rank</TableHead>
+            <TableHead>User</TableHead>
+            <TableHead className="text-right">WPM</TableHead>
+            <TableHead className="text-right">Accuracy</TableHead>
+            <TableHead className="text-right">Lessons</TableHead>
+            <TableHead className="text-right">Level</TableHead>
+            <TableHead className="text-right">Achievements</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {leaderboard?.map((entry) => {
+            const RankIcon = rankIcons[entry.rank as keyof typeof rankIcons];
+            const isCurrentUser = entry.id === currentUser?.id;
+
+            return (
+              <TableRow
+                key={entry.id}
+                className={cn(
+                  "transition-colors hover:bg-muted/50",
+                  isCurrentUser && "bg-primary/5 hover:bg-primary/10",
+                  "animate-in fade-in-50 slide-in-from-left-1"
+                )}
+              >
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {RankIcon ? (
+                      <RankIcon
+                        className={cn(
+                          "w-5 h-5",
+                          rankColors[entry.rank as keyof typeof rankColors]
+                        )}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground">#{entry.rank}</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={entry.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {entry.username?.slice(0, 2).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        {entry.full_name || entry.username}
+                      </span>
+                      {entry.full_name && (
+                        <span className="text-xs text-muted-foreground">
+                          @{entry.username}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="font-medium">{entry.average_wpm}</span>
+                    <Progress
+                      value={entry.average_wpm}
+                      max={150}
+                      className="w-16 h-2"
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="font-medium">{entry.average_accuracy}%</span>
+                    <Progress
+                      value={entry.average_accuracy}
+                      max={100}
+                      className="w-16 h-2"
+                    />
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {entry.total_lessons_completed}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Badge variant="secondary">
+                    Level {entry.level}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {entry.achievements_count}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
+
+export default LeaderboardTable;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Now let's create the table component that we're using:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Table                                                                               ║
+ * ║ Description: Accessible table component with consistent styling                                ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import * as React from "react";
+
+import { cn } from "@/lib/utils";
+
+const Table = React.forwardRef<
+  HTMLTableElement,
+  React.HTMLAttributes<HTMLTableElement>
+>(({ className, ...props }, ref) => (
+  <div className="relative w-full overflow-auto">
+    <table
+      ref={ref}
+      className={cn("w-full caption-bottom text-sm", className)}
+      {...props}
+    />
+  </div>
+));
+Table.displayName = "Table";
+
+const TableHeader = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+));
+TableHeader.displayName = "TableHeader";
+
+const TableBody = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tbody
+    ref={ref}
+    className={cn("[&_tr:last-child]:border-0", className)}
+    {...props}
+  />
+));
+TableBody.displayName = "TableBody";
+
+const TableFooter = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tfoot
+    ref={ref}
+    className={cn(
+      "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+      className
+    )}
+    {...props}
+  />
+));
+TableFooter.displayName = "TableFooter";
+
+const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.HTMLAttributes<HTMLTableRowElement>
+>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn(
+      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      className
+    )}
+    {...props}
+  />
+));
+TableRow.displayName = "TableRow";
+
+const TableHead = React.forwardRef<
+  HTMLTableCellElement,
+  React.ThHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <th
+    ref={ref}
+    className={cn(
+      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      className
+    )}
+    {...props}
+  />
+));
+TableHead.displayName = "TableHead";
+
+const TableCell = React.forwardRef<
+  HTMLTableCellElement,
+  React.TdHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <td
+    ref={ref}
+    className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
+    {...props}
+  />
+));
+TableCell.displayName = "TableCell";
+
+const TableCaption = React.forwardRef<
+  HTMLTableCaptionElement,
+  React.HTMLAttributes<HTMLTableCaptionElement>
+>(({ className, ...props }, ref) => (
+  <caption
+    ref={ref}
+    className={cn("mt-4 text-sm text-muted-foreground", className)}
+    {...props}
+  />
+));
+TableCaption.displayName = "TableCaption";
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+};
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Now let's create the leaderboard page:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Leaderboard Page                                                                    ║
+ * ║ Description: Global leaderboard with filters and time periods                                  ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LeaderboardTable from '@/components/leaderboard/LeaderboardTable';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+type TimePeriod = 'all' | 'today' | 'week' | 'month';
+type SortBy = 'wpm' | 'accuracy' | 'lessons' | 'achievements';
+
+const Leaderboard: React.FC = () => {
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('wpm');
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Global Leaderboard</CardTitle>
+              <CardDescription>
+                See how you stack up against other typists
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-4">
+              <Select
+                value={timePeriod}
+                onValueChange={(value) => setTimePeriod(value as TimePeriod)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Time Period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={sortBy}
+                onValueChange={(value) => setSortBy(value as SortBy)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wpm">WPM</SelectItem>
+                  <SelectItem value="accuracy">Accuracy</SelectItem>
+                  <SelectItem value="lessons">Lessons</SelectItem>
+                  <SelectItem value="achievements">Achievements</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="global" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="global">Global</TabsTrigger>
+              <TabsTrigger value="friends">Friends</TabsTrigger>
+              <TabsTrigger value="local">Your Region</TabsTrigger>
+            </TabsList>
+            <TabsContent value="global" className="space-y-4">
+              <LeaderboardTable
+                limit={50}
+                className="animate-in fade-in-50 slide-in-from-bottom-5"
+              />
+            </TabsContent>
+            <TabsContent value="friends" className="space-y-4">
+              <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                Coming soon...
+              </div>
+            </TabsContent>
+            <TabsContent value="local" className="space-y-4">
+              <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                Coming soon...
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Leaderboard;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Now let's create the select component:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: Select                                                                              ║
+ * ║ Description: Select component with smooth animations and keyboard navigation                   ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import * as React from "react";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+const Select = SelectPrimitive.Root;
+
+const SelectGroup = SelectPrimitive.Group;
+
+const SelectValue = SelectPrimitive.Value;
+
+const SelectTrigger = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      className
+    )}
+    {...props}
+  >
+    {children}
+    <SelectPrimitive.Icon asChild>
+      <ChevronDown className="h-4 w-4 opacity-50" />
+    </SelectPrimitive.Icon>
+  </SelectPrimitive.Trigger>
+));
+SelectTrigger.displayName = SelectPrimitive.Trigger.displayName;
+
+const SelectScrollUpButton = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollUpButton
+    ref={ref}
+    className={cn(
+      "flex cursor-default items-center justify-center py-1",
+      className
+    )}
+    {...props}
+  >
+    <ChevronUp className="h-4 w-4" />
+  </SelectPrimitive.ScrollUpButton>
+));
+SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName;
+
+const SelectScrollDownButton = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.ScrollDownButton
+    ref={ref}
+    className={cn(
+      "flex cursor-default items-center justify-center py-1",
+      className
+    )}
+    {...props}
+  >
+    <ChevronDown className="h-4 w-4" />
+  </SelectPrimitive.ScrollDownButton>
+));
+SelectScrollDownButton.displayName =
+  SelectPrimitive.ScrollDownButton.displayName;
+
+const SelectContent = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
+>(({ className, children, position = "popper", ...props }, ref) => (
+  <SelectPrimitive.Portal>
+    <SelectPrimitive.Content
+      ref={ref}
+      className={cn(
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        position === "popper" &&
+          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+        className
+      )}
+      position={position}
+      {...props}
+    >
+      <SelectScrollUpButton />
+      <SelectPrimitive.Viewport
+        className={cn(
+          "p-1",
+          position === "popper" &&
+            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+        )}
+      >
+        {children}
+      </SelectPrimitive.Viewport>
+      <SelectScrollDownButton />
+    </SelectPrimitive.Content>
+  </SelectPrimitive.Portal>
+));
+SelectContent.displayName = SelectPrimitive.Content.displayName;
+
+const SelectLabel = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Label>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Label
+    ref={ref}
+    className={cn("py-1.5 pl-8 pr-2 text-sm font-semibold", className)}
+    {...props}
+  />
+));
+SelectLabel.displayName = SelectPrimitive.Label.displayName;
+
+const SelectItem = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Item>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
+>(({ className, children, ...props }, ref) => (
+  <SelectPrimitive.Item
+    ref={ref}
+    className={cn(
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      className
+    )}
+    {...props}
+  >
+    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+      <SelectPrimitive.ItemIndicator>
+        <Check className="h-4 w-4" />
+      </SelectPrimitive.ItemIndicator>
+    </span>
+
+    <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+  </SelectPrimitive.Item>
+));
+SelectItem.displayName = SelectPrimitive.Item.displayName;
+
+const SelectSeparator = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Separator>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Separator
+    ref={ref}
+    className={cn("-mx-1 my-1 h-px bg-muted", className)}
+    {...props}
+  />
+));
+SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
+
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
+};
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Now let's update the App.tsx to include the leaderboard route:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing imports ...
+import Leaderboard from '@/pages/Leaderboard';
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <div className="min-h-screen bg-background">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/auth" element={<Auth />} />
+
+            {/* Protected Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Navigation />
+                    <TypingTutor />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Navigation />
+                    <Profile />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/leaderboard"
+              element={
+                <ProtectedRoute>
+                  <>
+                    <Navigation />
+                    <Leaderboard />
+                  </>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Catch-all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </Router>
+      <Toaster />
+    </QueryClientProvider>
+  );
+}
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+Now let's update the Navigation component to include the leaderboard link:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+          <div className="flex items-center space-x-6 text-sm font-medium">
+            <Link
+              to="/"
+              className={location.pathname === '/' ? 'text-foreground' : 'text-muted-foreground'}
+            >
+              Practice
+            </Link>
+            <Link
+              to="/profile"
+              className={location.pathname === '/profile' ? 'text-foreground' : 'text-muted-foreground'}
+            >
+              Profile
+            </Link>
+            <Link
+              to="/leaderboard"
+              className={location.pathname === '/leaderboard' ? 'text-foreground' : 'text-muted-foreground'}
+            >
+              Leaderboard
+            </Link>
+          </div>
+
+// ... rest of the code ...
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Now let's do a thorough code review and prepare for production deployment. Here are the key areas we should address:
+
+1. Fix the Supabase group query issue in LeaderboardTable:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+  // Fetch leaderboard data
+  const { data: leaderboard, isLoading } = useQuery({
+    queryKey: ['leaderboard'],
+    queryFn: async () => {
+      // Get achievement counts using raw SQL for better performance
+      const { data: achievementCounts } = await supabase
+        .from('user_achievements')
+        .select(`
+          user_id,
+          count:count(*)
+        `)
+        .group('user_id')
+        .throwOnError();
+
+      // Then get user profiles with stats
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('average_wpm', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      // Combine data and add rankings
+      const achievementMap = new Map(
+        achievementCounts?.map(({ user_id, count }) => [user_id, count]) || []
+      );
+
+      return profiles.map((profile, index) => ({
+        ...profile,
+        achievements_count: achievementMap.get(profile.id) || 0,
+        rank: index + 1,
+      })) as LeaderboardEntry[];
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+// ... rest of the code ...
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Let me try a different approach using a stored function:
+
+---
+
+_**Assistant**_
+
+```
+-- Create a function to get leaderboard data
+CREATE OR REPLACE FUNCTION get_leaderboard(
+  p_limit integer DEFAULT 100,
+  p_time_period text DEFAULT 'all',
+  p_sort_by text DEFAULT 'wpm'
+)
+RETURNS TABLE (
+  id uuid,
+  username text,
+  full_name text,
+  avatar_url text,
+  average_wpm integer,
+  average_accuracy integer,
+  total_lessons_completed integer,
+  level integer,
+  achievements_count bigint,
+  rank bigint
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_start_date timestamp;
+BEGIN
+  -- Set time period filter
+  CASE p_time_period
+    WHEN 'today' THEN
+      v_start_date := current_date;
+    WHEN 'week' THEN
+      v_start_date := date_trunc('week', current_date);
+    WHEN 'month' THEN
+      v_start_date := date_trunc('month', current_date);
+    ELSE
+      v_start_date := '1970-01-01'::timestamp;
+  END CASE;
+
+  -- Return leaderboard data
+  RETURN QUERY
+  WITH achievement_counts AS (
+    SELECT 
+      user_id,
+      COUNT(*) as achievements_count
+    FROM user_achievements
+    GROUP BY user_id
+  ),
+  ranked_users AS (
+    SELECT
+      p.id,
+      p.username,
+      p.full_name,
+      p.avatar_url,
+      p.average_wpm,
+      p.average_accuracy,
+      p.total_lessons_completed,
+      p.level,
+      COALESCE(ac.achievements_count, 0) as achievements_count,
+      ROW_NUMBER() OVER (
+        ORDER BY
+          CASE p_sort_by
+            WHEN 'wpm' THEN p.average_wpm
+            WHEN 'accuracy' THEN p.average_accuracy
+            WHEN 'lessons' THEN p.total_lessons_completed
+            WHEN 'achievements' THEN COALESCE(ac.achievements_count, 0)
+          END DESC
+      ) as rank
+    FROM profiles p
+    LEFT JOIN achievement_counts ac ON p.id = ac.user_id
+    WHERE 
+      CASE p_time_period
+        WHEN 'all' THEN true
+        ELSE p.last_lesson_date >= v_start_date
+      END
+  )
+  SELECT *
+  FROM ranked_users
+  LIMIT p_limit;
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION get_leaderboard TO authenticated;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+Now let's update the LeaderboardTable to use the stored function:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+interface LeaderboardTableProps {
+  className?: string;
+  limit?: number;
+  timePeriod?: 'all' | 'today' | 'week' | 'month';
+  sortBy?: 'wpm' | 'accuracy' | 'lessons' | 'achievements';
+}
+
+const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
+  className,
+  limit = 100,
+  timePeriod = 'all',
+  sortBy = 'wpm'
+}) => {
+  const { supabase } = useSupabase();
+
+  // Get current user for highlighting
+  const { data: currentUser } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
+  // Fetch leaderboard data
+  const { data: leaderboard, isLoading } = useQuery({
+    queryKey: ['leaderboard', timePeriod, sortBy, limit],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_leaderboard', {
+          p_limit: limit,
+          p_time_period: timePeriod,
+          p_sort_by: sortBy
+        });
+
+      if (error) throw error;
+      return data as LeaderboardEntry[];
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+// ... rest of the code ...
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+Now let's update the Leaderboard page to pass the filters to the table:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing code ...
+
+const Leaderboard: React.FC = () => {
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('wpm');
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Global Leaderboard</CardTitle>
+              <CardDescription>
+                See how you stack up against other typists
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-4">
+              <Select
+                value={timePeriod}
+                onValueChange={(value) => setTimePeriod(value as TimePeriod)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Time Period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={sortBy}
+                onValueChange={(value) => setSortBy(value as SortBy)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Sort By" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="wpm">WPM</SelectItem>
+                  <SelectItem value="accuracy">Accuracy</SelectItem>
+                  <SelectItem value="lessons">Lessons</SelectItem>
+                  <SelectItem value="achievements">Achievements</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="global" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="global">Global</TabsTrigger>
+              <TabsTrigger value="friends">Friends</TabsTrigger>
+              <TabsTrigger value="local">Your Region</TabsTrigger>
+            </TabsList>
+            <TabsContent value="global" className="space-y-4">
+              <LeaderboardTable
+                limit={50}
+                timePeriod={timePeriod}
+                sortBy={sortBy}
+                className="animate-in fade-in-50 slide-in-from-bottom-5"
+              />
+            </TabsContent>
+            <TabsContent value="friends" className="space-y-4">
+              <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                Coming soon...
+              </div>
+            </TabsContent>
+            <TabsContent value="local" className="space-y-4">
+              <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                Coming soon...
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Leaderboard;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+Now let's update the migration script to include the new function:
+
+---
+
+_**Assistant**_
+
+```
+#!/bin/bash
+
+# Load environment variables
+source .env.local
+
+# Apply schema migrations
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DATABASE -f supabase/migrations/20240218_user_profiles.sql
+
+# Apply function migrations
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DATABASE -f supabase/migrations/20240219_leaderboard_functions.sql
+
+# Verify tables and functions were created
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DATABASE -c "\dt"
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DATABASE -c "\df"
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Let's run the migration to apply the changes:
+
+---
+
+_**Assistant**_
+
+```
+./supabase/apply-migrations.sh
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+Great! Now let's do a thorough code review and prepare for production deployment. Here are some key areas to check:
+
+1. Add proper error boundaries:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: ErrorBoundary                                                                       ║
+ * ║ Description: Error boundary component for handling runtime errors gracefully                   ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface Props {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends React.Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
+    };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Uncaught error:', error, errorInfo);
+  }
+
+  private handleReset = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+    });
+  };
+
+  private handleReload = () => {
+    window.location.reload();
+  };
+
+  public render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                <CardTitle>Something went wrong</CardTitle>
+              </div>
+              <CardDescription>
+                An error occurred while rendering this component
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted p-4 rounded-lg overflow-auto">
+                <code className="text-sm whitespace-pre-wrap font-mono">
+                  {this.state.error?.message}
+                </code>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-4">
+              <Button
+                variant="outline"
+                onClick={this.handleReset}
+              >
+                Try Again
+              </Button>
+              <Button
+                variant="default"
+                onClick={this.handleReload}
+              >
+                Reload Page
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+Now let's wrap our app with the error boundary:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing imports ...
+import ErrorBoundary from '@/components/ErrorBoundary';
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/auth" element={<Auth />} />
+
+              {/* Protected Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <TypingTutor />
+                    </>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <Profile />
+                    </>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute>
+                    <>
+                      <Navigation />
+                      <Leaderboard />
+                    </>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Catch-all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+        <Toaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Let's also add error boundaries to individual routes for better isolation:
+
+---
+
+_**Assistant**_
+
+```
+// ... existing imports ...
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              {/* Public Routes */}
+              <Route
+                path="/auth"
+                element={
+                  <ErrorBoundary>
+                    <Auth />
+                  </ErrorBoundary>
+                }
+              />
+
+              {/* Protected Routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <>
+                        <Navigation />
+                        <TypingTutor />
+                      </>
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <>
+                        <Navigation />
+                        <Profile />
+                      </>
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute>
+                    <ErrorBoundary>
+                      <>
+                        <Navigation />
+                        <Leaderboard />
+                      </>
+                    </ErrorBoundary>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Catch-all route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+        <Toaster />
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Now let's add a loading state component for better UX:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: LoadingState                                                                        ║
+ * ║ Description: Loading state component with beautiful animations                                 ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { Keyboard } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface LoadingStateProps {
+  className?: string;
+  message?: string;
+  fullScreen?: boolean;
+}
+
+const LoadingState: React.FC<LoadingStateProps> = ({
+  className,
+  message = 'Loading...',
+  fullScreen = false,
+}) => {
+  const containerClasses = cn(
+    "flex flex-col items-center justify-center gap-4",
+    fullScreen && "min-h-screen",
+    className
+  );
+
+  return (
+    <div className={containerClasses}>
+      <div className="relative">
+        <Keyboard
+          className="w-12 h-12 text-primary animate-pulse"
+          strokeWidth={1.5}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0 animate-shimmer" />
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-lg font-medium text-foreground">{message}</p>
+        <div className="flex gap-1">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full bg-primary/50 animate-bounce"
+              style={{
+                animationDelay: `${i * 0.2}s`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoadingState;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+Let me try that again:
+
+---
+
+_**Assistant**_
+
+```
+/*
+ * ████████╗██╗   ██╗████████╗ ██████╗ ██████╗     ██████╗ ██████╗  █████╗ ██╗███╗   ██╗
+ * ╚══██╔══╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗    ██╔══██╗██╔══██╗██╔══██╗██║████╗  ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██████╔╝    ██████╔╝██████╔╝███████║██║██╔██╗ ██║
+ *    ██║   ██║   ██║   ██║   ██║   ██║██╔══██╗    ██╔══██╗██╔══██╗██╔══██║██║██║╚██╗██║
+ *    ██║   ╚██████╔╝   ██║   ╚██████╔╝██║  ██║    ██████╔╝██║  ██║██║  ██║██║██║ ╚████║
+ *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+ *
+ * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
+ * ║ Component: LoadingState                                                                        ║
+ * ║ Description: Loading state component with beautiful animations                                 ║
+ * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
+ */
+
+import React from 'react';
+import { Keyboard } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+interface LoadingStateProps {
+  className?: string;
+  message?: string;
+  fullScreen?: boolean;
+}
+
+const LoadingState: React.FC<LoadingStateProps> = ({
+  className,
+  message = 'Loading...',
+  fullScreen = false,
+}) => {
+  const containerClasses = cn(
+    "flex flex-col items-center justify-center gap-4",
+    fullScreen && "min-h-screen",
+    className
+  );
+
+  return (
+    <div className={containerClasses}>
+      <div className="relative">
+        <Keyboard
+          className="w-12 h-12 text-primary animate-pulse"
+          strokeWidth={1.5}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/30 to-primary/0 animate-shimmer" />
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-lg font-medium text-foreground">{message}</p>
+        <div className="flex gap-1">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full bg-primary/50 animate-bounce"
+              style={{
+                animationDelay: `${i * 0.2}s`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoadingState;
+```
+
+---
+
+_**Assistant**_
+
+
+
+
+
+
+
+
+
+Now let's add the shimmer animation to our Tailwind config:
+
+---
+
+_**Assistant**_
+
+```
+undefined
+```
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**User**_
+
+@Web continue to implement your plan
+
+---
+
+_**Assistant**_
+
 
 
 ---
