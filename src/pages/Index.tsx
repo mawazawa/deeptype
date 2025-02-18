@@ -20,6 +20,11 @@ const Index = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      
+      // If we're on the index page and there's no session, redirect to auth
+      if (!session?.user) {
+        console.log("No session detected, redirecting to auth");
+      }
     });
 
     return () => subscription.unsubscribe();
