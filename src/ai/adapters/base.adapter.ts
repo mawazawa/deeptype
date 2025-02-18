@@ -7,37 +7,60 @@
  *    ╚═╝    ╚═════╝    ╚═╝    ╚═════╝ ╚═╝  ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
  *
  * ╔═══════════════════════════════════════════════════════════════════════════════════════════════╗
- * ║ Module: Main Entry Point                                                                       ║
- * ║ Description: Application entry point with global providers and styles                          ║
+ * ║ Interface: AI Adapter Base                                                                     ║
+ * ║ Description: Base interface for AI model adapters (Gemini, GPT-4, etc.)                       ║
  * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
  */
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './styles/globals.css';
+export interface AIConfig {
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  streamCallback?: (text: string) => void;
+}
 
-// Add error boundary for better debugging
-const renderApp = () => {
-  try {
-    console.debug('Initializing application...');
+export interface AIResponse {
+  text: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  metadata?: Record<string, unknown>;
+}
 
-    const rootElement = document.getElementById('root');
-    if (!rootElement) {
-      throw new Error('Root element not found! Check if your index.html has a div with id="root"');
-    }
+export interface AIAdapter {
+  /**
+   * Initialize the AI adapter with configuration
+   * @param config The AI model configuration
+   */
+  initialize(config: AIConfig): Promise<void>;
 
-    ReactDOM.createRoot(rootElement).render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
+  /**
+   * Generate content based on a prompt
+   * @param prompt The input prompt
+   * @returns The generated content
+   */
+  generateContent(prompt: string): Promise<string>;
 
-    console.debug('Application successfully mounted');
-  } catch (error) {
-    console.error('Failed to initialize application:', error);
-    throw error;
-  }
-};
+  /**
+   * Stream content generation
+   * @param prompt The input prompt
+   * @param onToken Callback for each token
+   */
+  streamContent(prompt: string, onToken: (token: string) => void): Promise<void>;
 
-renderApp();
+  /**
+   * Get the model's configuration
+   */
+  getConfig(): AIConfig;
+
+  /**
+   * Get usage statistics
+   */
+  getUsage(): Promise<{
+    tokensUsed: number;
+    requestsMade: number;
+    lastRequestTime: Date;
+  }>;
+}

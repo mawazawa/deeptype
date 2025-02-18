@@ -16,29 +16,61 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 /**
- * Merge class names with Tailwind CSS classes
- * @param inputs - Class names to merge
- * @returns Merged class names
+ * Combines multiple class names and merges Tailwind CSS classes efficiently
+ * @param inputs - Class names to combine
+ * @returns Merged class string
  */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 /**
- * Format a date to a human-readable string
- * @param date - Date to format
- * @param options - Intl.DateTimeFormat options
+ * Type-safe wrapper for localStorage
+ * @param key - Storage key
+ * @param value - Value to store
+ */
+export function setLocalStorage<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch (error) {
+    console.error(`Error saving to localStorage key "${key}":`, error)
+  }
+}
+
+/**
+ * Type-safe getter for localStorage
+ * @param key - Storage key
+ * @param fallback - Default value if key doesn't exist
+ * @returns Stored value or fallback
+ */
+export function getLocalStorage<T>(key: string, fallback: T): T {
+  try {
+    const item = localStorage.getItem(key)
+    return item ? (JSON.parse(item) as T) : fallback
+  } catch (error) {
+    console.error(`Error reading localStorage key "${key}":`, error)
+    return fallback
+  }
+}
+
+/**
+ * Formats a date string into a human-readable format
+ * @param date - Date string or Date object
+ * @param locale - Locale string (default: 'en-US')
  * @returns Formatted date string
  */
-export function formatDate(
-  date: Date,
-  options: Intl.DateTimeFormatOptions = {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+export function formatDate(date: string | Date, locale = 'en-US'): string {
+  try {
+    const dateObject = typeof date === 'string' ? new Date(date) : date
+    return new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(dateObject)
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return String(date)
   }
-): string {
-  return new Intl.DateTimeFormat("en-US", options).format(date)
 }
 
 /**
@@ -61,7 +93,7 @@ export function formatNumber(
 }
 
 /**
- * Debounce a function
+ * Debounces a function call
  * @param fn - Function to debounce
  * @param delay - Delay in milliseconds
  * @returns Debounced function
@@ -72,7 +104,7 @@ export function debounce<T extends (...args: any[]) => any>(
 ): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout
 
-  return function (...args: Parameters<T>) {
+  return (...args: Parameters<T>) => {
     clearTimeout(timeoutId)
     timeoutId = setTimeout(() => fn(...args), delay)
   }
@@ -101,15 +133,71 @@ export function throttle<T extends (...args: any[]) => any>(
 }
 
 /**
- * Generate a random string
+ * Creates a URL-friendly slug from a string
+ * @param str - String to convert
+ * @returns URL-friendly slug
+ */
+export function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+/**
+ * Truncates a string to a specified length
+ * @param str - String to truncate
+ * @param length - Maximum length
+ * @param ending - String to append at truncation point
+ * @returns Truncated string
+ */
+export function truncate(str: string, length: number, ending = '...'): string {
+  if (str.length > length) {
+    return str.substring(0, length - ending.length) + ending
+  }
+  return str
+}
+
+/**
+ * Generates a random string of specified length
  * @param length - Length of the string
  * @returns Random string
  */
-export function randomString(length: number = 8): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  return Array.from({ length }, () =>
-    chars.charAt(Math.floor(Math.random() * chars.length))
-  ).join("")
+export function generateId(length: number = 8): string {
+  return Array.from(
+    { length },
+    () => Math.random().toString(36)[2]
+  ).join('')
+}
+
+/**
+ * Type guard to check if a value is not null or undefined
+ * @param value - Value to check
+ * @returns Boolean indicating if value is defined
+ */
+export function isDefined<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined
+}
+
+/**
+ * Safely access nested object properties
+ * @param obj - Object to access
+ * @param path - Path to property
+ * @param fallback - Fallback value
+ * @returns Property value or fallback
+ */
+export function get<T>(
+  obj: any,
+  path: string,
+  fallback: T
+): T {
+  try {
+    return path.split('.').reduce((acc, key) => acc[key], obj) ?? fallback
+  } catch {
+    return fallback
+  }
 }
 
 /**

@@ -97,5 +97,20 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .recharts-tooltip-wrapper {
+    @apply !bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg;
+  }
+
+  .recharts-tooltip-label {
+    @apply text-sm font-medium text-foreground p-2;
+  }
+
+  .recharts-tooltip-item {
+    @apply text-xs text-muted-foreground px-2 pb-2;
   }
 }
