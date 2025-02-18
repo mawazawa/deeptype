@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,17 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/');
+      }
+    };
+    checkUser();
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +55,8 @@ const Auth = () => {
     <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center justify-center animate-fade-in">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <h2 className="text-3xl font-bold">Welcome Back</h2>
+          <h1 className="text-4xl font-bold">DeepType AI</h1>
+          <h2 className="text-2xl mt-4">Welcome Back</h2>
           <p className="mt-2 text-secondary">Sign in to track your progress</p>
         </div>
 
