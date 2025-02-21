@@ -1,14 +1,10 @@
-import { defineConfig } from "vite"
-import react from "@vitejs/plugin-react-swc"
-import { resolve } from "path"
-import { componentTagger } from "lovable-tagger"
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { resolve } from "path";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  plugins: [
-    react(),
-    mode === 'development' && componentTagger(),
-  ].filter(Boolean),
+export default defineConfig({
+  plugins: [react()],
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),
@@ -22,9 +18,22 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: true,
     chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"],
+          "ui-vendor": [
+            "@radix-ui/react-menubar",
+            "class-variance-authority",
+            "clsx",
+            "tailwind-merge",
+          ],
+        },
+      },
+    },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ["react", "react-dom"],
   },
-  logLevel: mode === 'development' ? 'info' : 'warn',
-}))
+  logLevel: "info",
+});

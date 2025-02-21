@@ -12,19 +12,21 @@
  * ╚═══════════════════════════════════════════════════════════════════════════════════════════════╝
  */
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-import './styles/globals.css';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import "./index.css";
 
 // Add error boundary for better debugging
 const renderApp = () => {
   try {
-    console.debug('Initializing application...');
+    console.debug("Initializing application...");
 
-    const rootElement = document.getElementById('root');
+    const rootElement = document.getElementById("root");
     if (!rootElement) {
-      throw new Error('Root element not found! Check if your index.html has a div with id="root"');
+      throw new Error(
+        'Root element not found! Check if your index.html has a div with id="root"'
+      );
     }
 
     ReactDOM.createRoot(rootElement).render(
@@ -33,9 +35,9 @@ const renderApp = () => {
       </React.StrictMode>
     );
 
-    console.debug('Application successfully mounted');
+    console.debug("Application successfully mounted");
   } catch (error) {
-    console.error('Failed to initialize application:', error);
+    console.error("Failed to initialize application:", error);
     throw error;
   }
 };
